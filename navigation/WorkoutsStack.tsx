@@ -14,10 +14,12 @@ const layoutStyles = StyleSheet.create({
   headerLeftIos: {
     paddingLeft: 8,
     paddingRight: 6,
+    alignItems: 'center',
   },
   headerRightIos: {
     paddingRight: 10,
     paddingLeft: 6,
+    alignItems: 'center',
   },
 });
 
@@ -27,7 +29,7 @@ const headerChrome = {
     borderBottomWidth: V.outlineWidth,
     borderBottomColor: V.tabBarBorder,
   },
-  headerTitleStyle: { color: V.text, fontWeight: '600' as const },
+  headerTitleStyle: { color: V.text, fontWeight: '600' as const, fontSize: 17 },
   headerTintColor: V.text,
   headerShadowVisible: false,
   contentStyle: { backgroundColor: V.bg },
@@ -41,7 +43,13 @@ const headerChrome = {
 
 export default function WorkoutsStack() {
   return (
-    <Stack.Navigator screenOptions={headerChrome}>
+    <Stack.Navigator
+      screenOptions={{
+        ...headerChrome,
+        animation: 'default',
+        presentation: 'card',
+        ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
+      }}>
       <Stack.Screen
         name="WorkoutsList"
         component={WorkoutsListScreen}
@@ -70,17 +78,20 @@ export default function WorkoutsStack() {
           title: route.params?.editId ? 'Edit workout' : 'New workout',
           headerBackVisible: false,
           headerTitleAlign: 'left',
+          animation: 'default',
+          presentation: 'card',
           ...Platform.select({
             ios: {
+              fullScreenGestureEnabled: true,
               unstable_headerLeftItems: () => [
                 {
                   type: 'custom' as const,
                   hidesSharedBackground: true,
                   element: (
                     <OutlinedNavBackButton
+                      compact
                       onPress={() => navigation.goBack()}
                       label="Workouts"
-                      containerStyle={{ marginLeft: 4 }}
                     />
                   ),
                 },
@@ -89,13 +100,18 @@ export default function WorkoutsStack() {
             default: {
               headerLeft: () => (
                 <OutlinedNavBackButton
+                  compact
                   onPress={() => navigation.goBack()}
                   label="Workouts"
-                  containerStyle={{ marginLeft: 8 }}
                 />
               ),
             },
           }),
+          headerLeftContainerStyle: {
+            paddingLeft: Platform.OS === 'ios' ? 8 : 6,
+            paddingRight: 8,
+            alignItems: 'center',
+          },
         })}
       />
     </Stack.Navigator>

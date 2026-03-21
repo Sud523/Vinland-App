@@ -35,7 +35,13 @@ export default function App() {
       <SafeAreaProvider>
         <UserPrefsProvider>
           <NavigationContainer theme={navTheme}>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Navigator
+              screenOptions={{
+                headerShown: false,
+                animation: 'default',
+                presentation: 'card',
+                ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
+              }}>
               <Stack.Screen name="Main" component={MainTabs} />
               <Stack.Screen
                 name="Settings"
@@ -44,16 +50,19 @@ export default function App() {
                   headerShown: true,
                   title: 'Settings',
                   headerBackVisible: false,
+                  animation: 'default',
+                  presentation: 'card',
                   ...Platform.select({
                     ios: {
+                      fullScreenGestureEnabled: true,
                       unstable_headerLeftItems: () => [
                         {
                           type: 'custom' as const,
                           hidesSharedBackground: true,
                           element: (
                             <OutlinedNavBackButton
+                              compact
                               onPress={() => navigation.goBack()}
-                              containerStyle={{ marginLeft: 4 }}
                             />
                           ),
                         },
@@ -61,23 +70,25 @@ export default function App() {
                     },
                     default: {
                       headerLeft: () => (
-                        <OutlinedNavBackButton
-                          onPress={() => navigation.goBack()}
-                          containerStyle={{ marginLeft: 8 }}
-                        />
+                        <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
                       ),
                     },
                   }),
                   headerLeftContainerStyle: {
-                    paddingLeft: Platform.OS === 'ios' ? 8 : 4,
-                    paddingRight: 12,
+                    paddingLeft: Platform.OS === 'ios' ? 8 : 6,
+                    paddingRight: 8,
+                    alignItems: 'center',
                   },
                   headerTitleAlign: 'left',
                   headerStyle: {
                     backgroundColor: V.bg,
                   },
                   headerTintColor: V.text,
-                  headerTitleStyle: { color: V.text, fontWeight: '600' },
+                  headerTitleStyle: {
+                    color: V.text,
+                    fontWeight: '600',
+                    fontSize: 17,
+                  },
                   contentStyle: { backgroundColor: V.bg },
                   headerShadowVisible: false,
                 })}
