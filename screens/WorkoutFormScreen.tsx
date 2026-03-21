@@ -294,9 +294,10 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
   const listHeader = (
     <View style={styles.scrollContent}>
       <Text style={styles.sub}>
-        Name the workout, then set each exercise. Long-press the grip icon on a card to
-        drag and reorder. For reps, choose Failure to train each set to muscular failure, or
-        enter a fixed rep count. Time-based blocks are for intervals (e.g. Hard 4 min).
+        Name the workout, then set each exercise. Long-press the three dashes in the top
+        left of a card to drag and reorder. Mark an exercise optional at the bottom of the
+        card if it shouldn’t count toward daily progress or stats. Use Failure for reps to
+        failure, or time-based blocks for intervals (e.g. Hard 4 min).
       </Text>
 
       <Text style={styles.label}>Workout name</Text>

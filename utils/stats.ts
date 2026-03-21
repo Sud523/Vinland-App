@@ -1,6 +1,33 @@
 import type { Day } from '../types';
 
 import { localDateKey } from './date';
+import { isWorkoutSectionHeader, taskCountsTowardDailyProgress } from './workouts';
+
+/**
+ * A day “counts” for streaks when every exercise that affects progress/stats is
+ * completed. Optional-only days don’t advance streak from optional checkboxes.
+ * Legacy tasks (no structured exercise) still behave like required work.
+ */
+export function dayQualifiesForStreak(day: Day | undefined): boolean {
+  if (!day) {
+    return false;
+  }
+  const required = day.tasks.filter(taskCountsTowardDailyProgress);
+  if (required.length > 0) {
+    return required.every((t) => t.completed);
+  }
+  const nonHeader = day.tasks.filter((t) => !isWorkoutSectionHeader(t.name));
+  if (nonHeader.length === 0) {
+    return false;
+  }
+  const onlyOptional =
+    nonHeader.length > 0 &&
+    nonHeader.every((t) => t.exercise != null && t.exercise.optional === true);
+  if (onlyOptional) {
+    return false;
+  }
+  return nonHeader.some((t) => t.completed);
+}
 
 export type StatsSummary = {
   daysLogged: number;
@@ -22,8 +49,9 @@ export function computeStats(days: Day[]): StatsSummary {
   const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
 
   for (const d of sorted) {
-    const n = d.tasks.length;
-    const c = d.tasks.filter((t) => t.completed).length;
+    const counting = d.tasks.filter(taskCountsTowardDailyProgress);
+    const n = counting.length;
+    const c = counting.filter((t) => t.completed).length;
     totalTasks += n;
     completedTasks += c;
     if (d.weight != null && Number.isFinite(d.weight)) {
@@ -45,8 +73,7 @@ export function computeStats(days: Day[]): StatsSummary {
   let streak = 0;
   let bestStreak = 0;
   for (const d of sorted) {
-    const anyDone = d.tasks.some((t) => t.completed);
-    if (anyDone) {
+    if (dayQualifiesForStreak(d)) {
       streak += 1;
       bestStreak = Math.max(bestStreak, streak);
     } else {
@@ -73,8 +100,7 @@ export function computeStats(days: Day[]): StatsSummary {
 export function currentWorkoutStreak(days: Day[], now: Date = new Date()): number {
   const byDate = new Map(days.map((d) => [d.date, d]));
   const hasCompletedWork = (key: string): boolean => {
-    const day = byDate.get(key);
-    return day != null && day.tasks.some((t) => t.completed);
+    return dayQualifiesForStreak(byDate.get(key));
   };
 
   let d = new Date(now.getFullYear(), now.getMonth(), now.getDate());

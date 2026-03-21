@@ -31,6 +31,7 @@ export function emptyExerciseForm(): ExerciseFormInput {
     phases: [],
     restMinutesStr: '',
     notesStr: '',
+    optional: false,
   };
 }
 
@@ -85,6 +86,7 @@ export function formToExerciseDefinition(
           timeBased: false,
           workingPhases: [],
           restSeconds: null,
+          ...(f.optional ? { optional: true } : {}),
         },
         f.notesStr,
       );
@@ -102,6 +104,7 @@ export function formToExerciseDefinition(
         timeBased: false,
         workingPhases: [],
         restSeconds: null,
+        ...(f.optional ? { optional: true } : {}),
       },
       f.notesStr,
     );
@@ -137,6 +140,7 @@ export function formToExerciseDefinition(
       timeBased: true,
       workingPhases: phases,
       restSeconds,
+      ...(f.optional ? { optional: true } : {}),
     },
     f.notesStr,
   );
@@ -167,6 +171,7 @@ export function exerciseDefinitionToFormInput(
       phases: [],
       restMinutesStr: '',
       notesStr: ex.notes ?? '',
+      optional: ex.optional === true,
     };
   }
   let phases = ex.workingPhases.map((p) => ({
@@ -188,6 +193,7 @@ export function exerciseDefinitionToFormInput(
         ? secondsToMinutesInputStr(ex.restSeconds)
         : '',
     notesStr: ex.notes ?? '',
+    optional: ex.optional === true,
   };
 }
 
@@ -230,6 +236,17 @@ export function newSavedWorkoutId(): string {
 /** Workout title row when scheduling (e.g. "— Push day —"). */
 export function isWorkoutSectionHeader(name: string): boolean {
   return name.startsWith('—') && name.endsWith('—');
+}
+
+/** Tasks that count toward Home daily progress and aggregate stats (excludes optional exercises). */
+export function taskCountsTowardDailyProgress(task: Task): boolean {
+  if (isWorkoutSectionHeader(task.name)) {
+    return false;
+  }
+  if (task.exercise?.optional === true) {
+    return false;
+  }
+  return true;
 }
 
 /** Display title without em dashes (e.g. "— Push day —" → "Push day"). */
@@ -327,6 +344,7 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
     typeof e.sets === 'number' &&
     (e.reps === null || typeof e.reps === 'number') &&
     (e.repsToFailure === undefined || typeof e.repsToFailure === 'boolean') &&
+    (e.optional === undefined || typeof e.optional === 'boolean') &&
     typeof e.timeBased === 'boolean' &&
     Array.isArray(e.workingPhases) &&
     e.workingPhases.every(isTimePhase) &&

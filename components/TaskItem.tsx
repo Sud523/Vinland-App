@@ -39,7 +39,17 @@ export function TaskItem({
         ) : null}
       </View>
       <View style={styles.textCol}>
-        <Text style={[styles.label, completed && styles.labelDone]}>{name}</Text>
+        <Text style={[styles.label, completed && styles.labelDone]}>
+          {name}
+          {exercise?.optional ? (
+            <Text style={styles.optionalInline}> · Optional</Text>
+          ) : null}
+        </Text>
+        {exercise?.optional ? (
+          <Text style={styles.optionalMeta}>
+            Excluded from daily progress and stats
+          </Text>
+        ) : null}
         {detailLines.length > 0 ? (
           <View style={styles.detailBlock}>
             {detailLines.map((line, i) => (
@@ -110,6 +120,18 @@ const styles = StyleSheet.create({
   labelDone: {
     textDecorationLine: 'line-through',
     color: V.textTertiary,
+  },
+  optionalInline: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: V.textTertiary,
+  },
+  optionalMeta: {
+    fontSize: 12,
+    color: V.textDim,
+    marginTop: 4,
+    marginBottom: 2,
+    lineHeight: 16,
   },
   detailBlock: {
     marginTop: 6,

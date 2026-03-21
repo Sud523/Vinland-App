@@ -137,7 +137,7 @@ export default function StatsScreen() {
         <StatCard
           label="Best completion streak"
           value={`${stats.bestStreak} day${stats.bestStreak === 1 ? '' : 's'}`}
-          hint="Longest run of days with at least one task checked off"
+          hint="Longest run of days where every exercise that counts toward your plan was done (optional exercises excluded)"
         />
         <StatCard
           label="Days with a log"
@@ -147,7 +147,7 @@ export default function StatsScreen() {
         <StatCard
           label="Tasks completed"
           value={`${stats.completedTasks} / ${stats.totalTasks}`}
-          hint="All-time checked exercises vs scheduled"
+          hint="Checked vs scheduled exercises that count toward progress (optional exercises excluded)"
         />
         <StatCard
           label="Calorie goal streak"

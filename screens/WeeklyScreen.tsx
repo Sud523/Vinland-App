@@ -30,14 +30,17 @@ import {
   removeTaskIndexRange,
   savedWorkoutLabel,
   savedWorkoutToTasks,
+  taskCountsTowardDailyProgress,
   workoutSectionDisplayTitle,
 } from '../utils/workouts';
 
 const STATUS_COL_W = 28;
 
 function segmentAllExercisesComplete(slice: Task[]): boolean {
-  const exercises = slice.filter((t) => !isWorkoutSectionHeader(t.name));
-  return exercises.length > 0 && exercises.every((t) => t.completed);
+  const required = slice.filter(
+    (t) => !isWorkoutSectionHeader(t.name) && taskCountsTowardDailyProgress(t),
+  );
+  return required.length > 0 && required.every((t) => t.completed);
 }
 
 function getWeekDaySlots(anchor: Date): { dateKey: string; heading: string }[] {
@@ -91,7 +94,12 @@ function WorkoutLine({
           </Text>
         ) : (
           <>
-            <Text style={styles.workoutExerciseTitle}>{task.name}</Text>
+            <Text style={styles.workoutExerciseTitle}>
+              {task.name}
+              {task.exercise?.optional ? (
+                <Text style={styles.optionalBadge}> · Optional</Text>
+              ) : null}
+            </Text>
             {lines.length > 0 ? (
               <View style={styles.workoutDetails}>
                 {lines.map((line, i) => (
@@ -578,6 +586,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.88)',
     letterSpacing: -0.2,
+  },
+  optionalBadge: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: V.textTertiary,
   },
   workoutDetails: {
     marginTop: 6,

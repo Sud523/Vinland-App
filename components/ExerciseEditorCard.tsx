@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Pressable,
@@ -94,7 +93,11 @@ export function ExerciseEditorCard({
               hitSlop={10}
               style={({ pressed }) => [styles.dragHandle, pressed && styles.pressed]}
             >
-              <Ionicons name="reorder-three" size={22} color={V.textDim} />
+              <View style={styles.dragDashStack}>
+                <View style={[styles.dragDash, { backgroundColor: V.textDim }]} />
+                <View style={[styles.dragDash, { backgroundColor: V.textDim }]} />
+                <View style={[styles.dragDash, { backgroundColor: V.textDim }]} />
+              </View>
             </Pressable>
           ) : null}
           <Text
@@ -254,6 +257,29 @@ export function ExerciseEditorCard({
         multiline
         textAlignVertical="top"
       />
+
+      <View style={styles.optionalRow}>
+        <Pressable
+          onPress={() => update({ optional: !value.optional })}
+          style={({ pressed }) => [
+            styles.optionalCheckbox,
+            value.optional && styles.optionalCheckboxOn,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: value.optional }}
+        >
+          {value.optional ? (
+            <Text style={styles.optionalCheckMark}>✓</Text>
+          ) : null}
+        </Pressable>
+        <View style={styles.optionalTextCol}>
+          <Text style={styles.optionalTitle}>Optional exercise</Text>
+          <Text style={styles.optionalSub}>
+            Skipped for today’s progress bar, streak, and Stats completion counts.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -287,6 +313,17 @@ const styles = StyleSheet.create({
   dragHandle: {
     paddingVertical: 2,
     paddingHorizontal: 2,
+  },
+  dragDashStack: {
+    gap: 4,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingVertical: 2,
+  },
+  dragDash: {
+    width: 18,
+    height: 2,
+    borderRadius: 1,
   },
   cardTitle: {
     fontSize: 17,
@@ -330,9 +367,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: V.text,
     backgroundColor: V.bgInput,
-    marginBottom: 0,
+    marginBottom: 14,
     minHeight: 72,
     lineHeight: 21,
+  },
+  optionalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: V.borderHairline,
+    marginTop: 4,
+  },
+  optionalCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: V.textSecondary,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: V.bgInput,
+  },
+  optionalCheckboxOn: {
+    borderColor: V.accent,
+  },
+  optionalCheckMark: {
+    color: V.accent,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  optionalTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  optionalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: V.text,
+    marginBottom: 4,
+  },
+  optionalSub: {
+    fontSize: 13,
+    color: V.textSecondary,
+    lineHeight: 18,
   },
   switchRow: {
     flexDirection: 'row',

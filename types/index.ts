@@ -18,6 +18,8 @@ export type ExerciseDefinition = {
   restSeconds: number | null;
   /** Optional note (e.g. target effort). */
   notes?: string;
+  /** When true, completions don’t count toward daily progress or stats. */
+  optional?: boolean;
 };
 
 export type Task = {
@@ -49,6 +51,8 @@ export type ExerciseFormInput = {
   phases: { label: string; minutesStr: string }[];
   restMinutesStr: string;
   notesStr: string;
+  /** Exercise is optional for progress and stats. */
+  optional: boolean;
 };
 
 /** Reusable template saved from the Workouts tab. */

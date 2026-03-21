@@ -30,7 +30,7 @@ import {
   saveData,
 } from '../utils/storage';
 import { currentWorkoutStreak } from '../utils/stats';
-import { isWorkoutSectionHeader } from '../utils/workouts';
+import { isWorkoutSectionHeader, taskCountsTowardDailyProgress } from '../utils/workouts';
 
 export default function HomeScreen() {
   const tabBarHeight = useBottomTabBarHeight();
@@ -68,8 +68,12 @@ export default function HomeScreen() {
     () => today?.tasks.filter((t) => !isWorkoutSectionHeader(t.name)) ?? [],
     [today?.tasks],
   );
-  const exercisesDone = exerciseTasks.filter((t) => t.completed).length;
-  const exerciseTotal = exerciseTasks.length;
+  const progressTasks = useMemo(
+    () => exerciseTasks.filter(taskCountsTowardDailyProgress),
+    [exerciseTasks],
+  );
+  const exercisesDone = progressTasks.filter((t) => t.completed).length;
+  const exerciseTotal = progressTasks.length;
   const progressPct =
     exerciseTotal > 0 ? Math.round((exercisesDone / exerciseTotal) * 100) : 0;
 
@@ -290,8 +294,9 @@ export default function HomeScreen() {
             </Text>
           </Text>
           <Text style={styles.streakHint}>
-            Consecutive days with at least one exercise checked off. Today counts
-            once you complete something; otherwise yesterday keeps the run going.
+            Consecutive days where every exercise that counts toward your plan is
+            checked off. Optional exercises don’t count. If today isn’t finished yet,
+            yesterday can keep the streak alive.
           </Text>
         </View>
 
