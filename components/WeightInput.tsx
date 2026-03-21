@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { V } from '../constants/vinlandTheme';
 
@@ -34,6 +34,14 @@ export function WeightInput({ weight, onWeightChange, locked = false }: WeightIn
     onWeightChange(n);
   };
 
+  const handleDonePress = () => {
+    if (locked) {
+      return;
+    }
+    commit();
+    Keyboard.dismiss();
+  };
+
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Today&apos;s weight (lb)</Text>
@@ -49,10 +57,22 @@ export function WeightInput({ weight, onWeightChange, locked = false }: WeightIn
         editable={!locked}
         style={[styles.input, locked && styles.inputLocked]}
       />
+      {!locked ? (
+        <View style={styles.doneRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Done entering weight"
+            onPress={handleDonePress}
+            style={({ pressed }) => [styles.doneButton, pressed && styles.doneButtonPressed]}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <Text style={styles.hint}>
         {locked
           ? 'Locked for today after you saved a weight. It will unlock tomorrow.'
-          : 'Pounds (lb). Enter a number and tap done — it saves with your day.'}
+          : 'Pounds (lb). Enter a number and tap Done — it saves with your day.'}
       </Text>
     </View>
   );
@@ -89,6 +109,29 @@ const styles = StyleSheet.create({
     borderColor: V.borderMuted,
     color: V.textSecondary,
     opacity: 0.9,
+  },
+  doneRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  doneButton: {
+    backgroundColor: V.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: 'rgba(0, 0, 0, 0.5)',
+    minWidth: 88,
+    alignItems: 'center',
+  },
+  doneButtonPressed: {
+    opacity: 0.88,
+  },
+  doneButtonText: {
+    color: V.bg,
+    fontSize: 15,
+    fontWeight: '600',
   },
   hint: {
     marginTop: 10,
