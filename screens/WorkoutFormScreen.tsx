@@ -6,12 +6,13 @@ import {
   Alert,
   Keyboard,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import type { RenderItemParams } from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExerciseEditorCard } from '../components/ExerciseEditorCard';
@@ -100,11 +101,11 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     }, [editId, navigation, populateFromWorkout]),
   );
 
-  const updateForm = (index: number, next: ExerciseFormInput) => {
+  const updateForm = useCallback((index: number, next: ExerciseFormInput) => {
     setExerciseRows((prev) =>
       prev.map((r, i) => (i === index ? { ...r, form: next } : r)),
     );
-  };
+  }, []);
 
   const addExerciseSlot = () => {
     setExerciseRows((prev) => [
@@ -113,11 +114,15 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     ]);
   };
 
-  const removeExerciseSlot = (index: number) => {
+  const removeExerciseSlot = useCallback((index: number) => {
     setExerciseRows((prev) =>
       prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
     );
-  };
+  }, []);
+
+  const onDragEnd = useCallback(({ data }: { data: ExerciseRow[] }) => {
+    setExerciseRows(data);
+  }, []);
 
   const validateWorkoutName = (): boolean => {
     if (!workoutName.trim()) {
@@ -266,86 +271,112 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     goBackToList();
   };
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: tabBarHeight + 24 },
-        ]}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="on-drag"
-      >
-        <Text style={styles.sub}>
-          Name the workout, then set each exercise: sets and reps, or time-based
-          blocks (e.g. Hard 4 min, Light 3 min) plus rest between sets.
-        </Text>
-
-        <Text style={styles.label}>Workout name</Text>
-        <TextInput
-          value={workoutName}
-          onChangeText={setWorkoutName}
-          placeholder="Push Day"
-          placeholderTextColor={V.placeholder}
-          style={styles.input}
-        />
-
-        <Text style={styles.label}>Workout notes (optional)</Text>
-        <TextInput
-          value={workoutDescription}
-          onChangeText={setWorkoutDescription}
-          placeholder="e.g. training for explosiveness"
-          placeholderTextColor={V.placeholder}
-          style={styles.descInput}
-          multiline
-          textAlignVertical="top"
-        />
-
-        {exerciseRows.map((row, index) => (
+  const renderItem = useCallback(
+    ({ item, drag, isActive, getIndex }: RenderItemParams<ExerciseRow>) => {
+      const index = getIndex() ?? 0;
+      return (
+        <ScaleDecorator>
           <ExerciseEditorCard
-            key={row.id}
             index={index}
-            value={row.form}
+            value={item.form}
             onChange={(next) => updateForm(index, next)}
             onRemove={() => removeExerciseSlot(index)}
             canRemove={exerciseRows.length > 1}
+            onDrag={drag}
+            isDragging={isActive}
           />
-        ))}
+        </ScaleDecorator>
+      );
+    },
+    [exerciseRows.length, removeExerciseSlot, updateForm],
+  );
 
+  const listHeader = (
+    <View style={styles.scrollContent}>
+      <Text style={styles.sub}>
+        Name the workout, then set each exercise. Long-press the grip icon on a card to
+        drag and reorder. For reps, choose Failure to train each set to muscular failure, or
+        enter a fixed rep count. Time-based blocks are for intervals (e.g. Hard 4 min).
+      </Text>
+
+      <Text style={styles.label}>Workout name</Text>
+      <TextInput
+        value={workoutName}
+        onChangeText={setWorkoutName}
+        placeholder="Push Day"
+        placeholderTextColor={V.placeholder}
+        style={styles.input}
+      />
+
+      <Text style={styles.label}>Workout notes (optional)</Text>
+      <TextInput
+        value={workoutDescription}
+        onChangeText={setWorkoutDescription}
+        placeholder="e.g. training for explosiveness"
+        placeholderTextColor={V.placeholder}
+        style={styles.descInput}
+        multiline
+        textAlignVertical="top"
+      />
+
+      <Text style={[styles.label, styles.exercisesLabel]}>Exercises</Text>
+    </View>
+  );
+
+  const listFooter = (
+    <View style={[styles.scrollContent, { paddingBottom: tabBarHeight + 24 }]}>
+      <Pressable
+        onPress={addExerciseSlot}
+        style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
+      >
+        <Text style={styles.addExerciseText}>+ Add another exercise</Text>
+      </Pressable>
+
+      <Pressable
+        onPressIn={() => Keyboard.dismiss()}
+        onPress={() => void saveWorkoutToLibrary()}
+        style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
+      >
+        <Text style={styles.saveLibraryBtnText}>
+          {editingId != null ? 'Save changes' : 'Save workout'}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPressIn={() => Keyboard.dismiss()}
+        onPress={() => void addToToday()}
+        style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
+      >
+        <Text style={styles.addTodayBtnText}>Add to today</Text>
+      </Pressable>
+
+      {editingId != null ? (
         <Pressable
-          onPress={addExerciseSlot}
-          style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
+          onPress={() => void deleteWorkout()}
+          style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addExerciseText}>+ Add another exercise</Text>
+          <Text style={styles.deleteBtnText}>Delete workout</Text>
         </Pressable>
+      ) : null}
+    </View>
+  );
 
-        <Pressable
-          onPressIn={() => Keyboard.dismiss()}
-          onPress={() => void saveWorkoutToLibrary()}
-          style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
-        >
-          <Text style={styles.saveLibraryBtnText}>
-            {editingId != null ? 'Save changes' : 'Save workout'}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPressIn={() => Keyboard.dismiss()}
-          onPress={() => void addToToday()}
-          style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
-        >
-          <Text style={styles.addTodayBtnText}>Add to today</Text>
-        </Pressable>
-
-        {editingId != null ? (
-          <Pressable
-            onPress={() => void deleteWorkout()}
-            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
-          >
-            <Text style={styles.deleteBtnText}>Delete workout</Text>
-          </Pressable>
-        ) : null}
-      </ScrollView>
+  return (
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      <DraggableFlatList
+        data={exerciseRows}
+        keyExtractor={(item) => item.id}
+        onDragEnd={onDragEnd}
+        onDragBegin={() => Keyboard.dismiss()}
+        activationDistance={12}
+        containerStyle={styles.list}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
+        renderItem={renderItem}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      />
     </SafeAreaView>
   );
 }
@@ -355,9 +386,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: V.bg,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
     paddingTop: 8,
+    paddingHorizontal: 20,
+  },
+  scrollContent: {},
+  exercisesLabel: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   sub: {
     fontSize: 15,

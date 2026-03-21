@@ -8,8 +8,10 @@ export type TimePhase = {
 export type ExerciseDefinition = {
   name: string;
   sets: number;
-  /** Rep-based exercises; null when time-only. */
+  /** Rep-based exercises; null when time-only. Ignored for display when repsToFailure. */
   reps: number | null;
+  /** Rep-based only: perform each set to muscular failure instead of a fixed rep count. */
+  repsToFailure?: boolean;
   timeBased: boolean;
   workingPhases: TimePhase[];
   /** Rest after each full round of working phases (between sets). */
@@ -41,6 +43,8 @@ export type ExerciseFormInput = {
   name: string;
   setsStr: string;
   repsStr: string;
+  /** Rep-based only: true = reps until failure (no fixed count). */
+  repsUntilFailure: boolean;
   timeBased: boolean;
   phases: { label: string; minutesStr: string }[];
   restMinutesStr: string;

@@ -26,6 +26,7 @@ export function emptyExerciseForm(): ExerciseFormInput {
     name: '',
     setsStr: '3',
     repsStr: '10',
+    repsUntilFailure: false,
     timeBased: false,
     phases: [],
     restMinutesStr: '',
@@ -74,6 +75,20 @@ export function formToExerciseDefinition(
   const sets = Math.max(1, parseInt(f.setsStr, 10) || 1);
 
   if (!f.timeBased) {
+    if (f.repsUntilFailure) {
+      return withExerciseNotes(
+        {
+          name,
+          sets,
+          reps: 1,
+          repsToFailure: true,
+          timeBased: false,
+          workingPhases: [],
+          restSeconds: null,
+        },
+        f.notesStr,
+      );
+    }
     const r = parseInt(f.repsStr, 10);
     if (!Number.isFinite(r) || r < 1) {
       return null;
@@ -142,10 +157,12 @@ export function exerciseDefinitionToFormInput(
   ex: ExerciseDefinition,
 ): ExerciseFormInput {
   if (!ex.timeBased) {
+    const toFailure = ex.repsToFailure === true;
     return {
       name: ex.name,
       setsStr: String(Math.max(1, ex.sets)),
-      repsStr: ex.reps != null ? String(ex.reps) : '1',
+      repsStr: toFailure ? '' : ex.reps != null ? String(ex.reps) : '1',
+      repsUntilFailure: toFailure,
       timeBased: false,
       phases: [],
       restMinutesStr: '',
@@ -163,6 +180,7 @@ export function exerciseDefinitionToFormInput(
     name: ex.name,
     setsStr: String(Math.max(1, ex.sets)),
     repsStr: '',
+    repsUntilFailure: false,
     timeBased: true,
     phases,
     restMinutesStr:
@@ -260,8 +278,12 @@ export function exerciseSummaryLines(ex: ExerciseDefinition): string[] {
   const lines: string[] = [];
   const setStr = `${ex.sets} set${ex.sets === 1 ? '' : 's'}`;
   if (!ex.timeBased) {
-    const r = ex.reps ?? 0;
-    lines.push(`${setStr} · ${r} rep${r === 1 ? '' : 's'}`);
+    if (ex.repsToFailure) {
+      lines.push(`${setStr} · to failure`);
+    } else {
+      const r = ex.reps ?? 0;
+      lines.push(`${setStr} · ${r} rep${r === 1 ? '' : 's'}`);
+    }
     return lines;
   }
   lines.push(`${setStr} · time-based`);
@@ -304,6 +326,7 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
     typeof e.name === 'string' &&
     typeof e.sets === 'number' &&
     (e.reps === null || typeof e.reps === 'number') &&
+    (e.repsToFailure === undefined || typeof e.repsToFailure === 'boolean') &&
     typeof e.timeBased === 'boolean' &&
     Array.isArray(e.workingPhases) &&
     e.workingPhases.every(isTimePhase) &&

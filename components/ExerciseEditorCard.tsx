@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Pressable,
@@ -17,6 +18,9 @@ type Props = {
   onChange: (next: ExerciseFormInput) => void;
   onRemove: () => void;
   canRemove: boolean;
+  /** Long-press to drag-reorder (workout form). */
+  onDrag?: () => void;
+  isDragging?: boolean;
 };
 
 export function ExerciseEditorCard({
@@ -25,6 +29,8 @@ export function ExerciseEditorCard({
   onChange,
   onRemove,
   canRemove,
+  onDrag,
+  isDragging,
 }: Props) {
   const update = (patch: Partial<ExerciseFormInput>) => {
     onChange({ ...value, ...patch });
@@ -35,6 +41,7 @@ export function ExerciseEditorCard({
       onChange({
         ...value,
         timeBased: true,
+        repsUntilFailure: false,
         repsStr: '',
         phases:
           value.phases.length > 0
@@ -47,7 +54,8 @@ export function ExerciseEditorCard({
         timeBased: false,
         phases: [],
         restMinutesStr: '',
-        repsStr: value.repsStr || '10',
+        repsStr: value.repsUntilFailure ? '' : value.repsStr || '10',
+        repsUntilFailure: value.repsUntilFailure,
       });
     }
   };
@@ -73,9 +81,29 @@ export function ExerciseEditorCard({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, isDragging && styles.cardDragging]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>Exercise {index + 1}</Text>
+        <View style={styles.cardHeaderMain}>
+          {onDrag ? (
+            <Pressable
+              onLongPress={onDrag}
+              delayLongPress={180}
+              disabled={isDragging}
+              accessibilityRole="button"
+              accessibilityLabel="Drag to reorder exercise"
+              hitSlop={10}
+              style={({ pressed }) => [styles.dragHandle, pressed && styles.pressed]}
+            >
+              <Ionicons name="reorder-three" size={22} color={V.textDim} />
+            </Pressable>
+          ) : null}
+          <Text
+            style={[styles.cardTitle, onDrag ? styles.cardTitleFlex : undefined]}
+            numberOfLines={1}
+          >
+            Exercise {index + 1}
+          </Text>
+        </View>
         {canRemove ? (
           <Pressable onPress={onRemove} hitSlop={8}>
             <Text style={styles.removeTop}>Remove</Text>
@@ -115,14 +143,50 @@ export function ExerciseEditorCard({
       {!value.timeBased ? (
         <>
           <Text style={styles.fieldLabel}>Reps per set</Text>
-          <TextInput
-            value={value.repsStr}
-            onChangeText={(repsStr) => update({ repsStr })}
-            placeholder="10"
-            placeholderTextColor={V.placeholder}
-            keyboardType="number-pad"
-            style={styles.input}
-          />
+          <View style={styles.repsModeRow}>
+            <Pressable
+              onPress={() => {
+                if (value.repsUntilFailure) {
+                  update({ repsUntilFailure: false, repsStr: value.repsStr || '10' });
+                } else {
+                  update({ repsUntilFailure: true, repsStr: '' });
+                }
+              }}
+              style={({ pressed }) => [
+                styles.failureChip,
+                value.repsUntilFailure && styles.failureChipOn,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.failureChipText,
+                  value.repsUntilFailure && styles.failureChipTextOn,
+                ]}
+              >
+                Failure
+              </Text>
+            </Pressable>
+            <Text style={styles.repsModeHint}>
+              {value.repsUntilFailure
+                ? 'On: no rep target'
+                : 'Off: fixed reps below'}
+            </Text>
+          </View>
+          {value.repsUntilFailure ? (
+            <Text style={styles.failureDescription}>
+              Each set is done to muscular failure instead of a set number of reps.
+            </Text>
+          ) : (
+            <TextInput
+              value={value.repsStr}
+              onChangeText={(repsStr) => update({ repsStr })}
+              placeholder="10"
+              placeholderTextColor={V.placeholder}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
+          )}
         </>
       ) : (
         <>
@@ -203,16 +267,35 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  cardDragging: {
+    opacity: 0.92,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+    gap: 8,
+  },
+  cardHeaderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
+  dragHandle: {
+    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
   cardTitle: {
     fontSize: 17,
     fontWeight: '700',
     color: V.text,
+  },
+  cardTitleFlex: {
+    flex: 1,
+    minWidth: 0,
   },
   removeTop: {
     color: V.destructive,
@@ -263,6 +346,46 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: V.text,
     paddingRight: 12,
+  },
+  repsModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
+  failureChip: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderMuted,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: V.boxRadius,
+    backgroundColor: V.bgInput,
+  },
+  failureChipOn: {
+    borderColor: V.border,
+    backgroundColor: V.bgElevated,
+  },
+  failureChipText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: V.textSecondary,
+  },
+  failureChipTextOn: {
+    color: V.accent,
+  },
+  repsModeHint: {
+    flex: 1,
+    minWidth: 120,
+    fontSize: 13,
+    color: V.textTertiary,
+    lineHeight: 18,
+  },
+  failureDescription: {
+    fontSize: 14,
+    color: V.textSecondary,
+    lineHeight: 20,
+    marginBottom: 14,
   },
   sectionHint: {
     fontSize: 14,
