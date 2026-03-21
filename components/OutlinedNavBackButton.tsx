@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -26,10 +27,11 @@ type Props = {
  * (and/or `UIDesignRequiresCompatibility` in app config) so the system does not add a glass pill.
  */
 export function OutlinedNavBackButton({ onPress, label, containerStyle, compact }: Props) {
-  const iconSize = compact ? 17 : 22;
+  const iconSize = compact ? 15 : 22;
   const boxStyle = [
     styles.box,
     label == null && styles.boxIconOnly,
+    compact && styles.boxFineBorder,
     compact && styles.boxCompact,
     compact && label == null && styles.boxIconOnlyCompact,
   ];
@@ -43,10 +45,10 @@ export function OutlinedNavBackButton({ onPress, label, containerStyle, compact 
       accessibilityLabel={label != null ? `Back to ${label}` : 'Go back'}
       hitSlop={
         compact
-          ? { top: 8, bottom: 8, left: 4, right: 8 }
+          ? { top: 10, bottom: 10, left: 6, right: 10 }
           : { top: 10, bottom: 10, left: 6, right: 10 }
       }
-      style={[styles.touchOuter, containerStyle]}
+      style={[styles.touchOuter, compact && styles.touchOuterCompact, containerStyle]}
     >
       <View style={boxStyle}>
         <Ionicons name="chevron-back" size={iconSize} color={V.link} />
@@ -56,9 +58,15 @@ export function OutlinedNavBackButton({ onPress, label, containerStyle, compact 
   );
 }
 
+const fineBorder =
+  Platform.OS === 'ios' ? Math.max(StyleSheet.hairlineWidth, 1) : StyleSheet.hairlineWidth;
+
 const styles = StyleSheet.create({
   touchOuter: {
     alignSelf: 'flex-start',
+  },
+  touchOuterCompact: {
+    alignSelf: 'center',
   },
   box: {
     flexDirection: 'row',
@@ -71,19 +79,24 @@ const styles = StyleSheet.create({
     backgroundColor: V.bgElevated,
     borderRadius: V.boxRadius,
   },
+  boxFineBorder: {
+    borderWidth: fineBorder,
+    borderColor: V.borderMuted,
+    backgroundColor: V.bg,
+  },
   boxCompact: {
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    minHeight: 34,
+    gap: 3,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    height: 28,
     justifyContent: 'center',
   },
   boxIconOnly: {
     paddingHorizontal: 10,
   },
   boxIconOnlyCompact: {
-    paddingHorizontal: 7,
-    minWidth: 34,
+    paddingHorizontal: 5,
+    width: 28,
     justifyContent: 'center',
   },
   label: {
@@ -92,7 +105,9 @@ const styles = StyleSheet.create({
     color: V.link,
   },
   labelCompact: {
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '600',
+    marginTop: Platform.OS === 'ios' ? 1 : 0,
   },
 });

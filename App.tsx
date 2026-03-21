@@ -10,6 +10,11 @@ import { FirstLaunchOnboarding } from './components/FirstLaunchOnboarding';
 import { OutlinedNavBackButton } from './components/OutlinedNavBackButton';
 import { UserPrefsProvider } from './context/UserPrefsContext';
 import { V } from './constants/vinlandTheme';
+import {
+  headerTitleBarContainerStyle,
+  headerTitleBarStyle,
+  smoothStackTransition,
+} from './navigation/headerNav';
 import MainTabs from './navigation/MainTabs';
 import type { RootStackParamList } from './navigation/types';
 import SettingsScreen from './screens/SettingsScreen';
@@ -38,8 +43,8 @@ export default function App() {
             <Stack.Navigator
               screenOptions={{
                 headerShown: false,
-                animation: 'default',
                 presentation: 'card',
+                ...smoothStackTransition,
                 ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
               }}>
               <Stack.Screen name="Main" component={MainTabs} />
@@ -50,8 +55,8 @@ export default function App() {
                   headerShown: true,
                   title: 'Settings',
                   headerBackVisible: false,
-                  animation: 'default',
                   presentation: 'card',
+                  ...smoothStackTransition,
                   ...Platform.select({
                     ios: {
                       fullScreenGestureEnabled: true,
@@ -76,19 +81,17 @@ export default function App() {
                   }),
                   headerLeftContainerStyle: {
                     paddingLeft: Platform.OS === 'ios' ? 8 : 6,
-                    paddingRight: 8,
+                    paddingRight: 6,
                     alignItems: 'center',
+                    justifyContent: 'center',
                   },
                   headerTitleAlign: 'left',
+                  headerTitleContainerStyle: headerTitleBarContainerStyle,
                   headerStyle: {
                     backgroundColor: V.bg,
                   },
                   headerTintColor: V.text,
-                  headerTitleStyle: {
-                    color: V.text,
-                    fontWeight: '600',
-                    fontSize: 17,
-                  },
+                  headerTitleStyle: headerTitleBarStyle,
                   contentStyle: { backgroundColor: V.bg },
                   headerShadowVisible: false,
                 })}

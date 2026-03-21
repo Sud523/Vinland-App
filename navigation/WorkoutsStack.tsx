@@ -4,6 +4,11 @@ import { Platform, StyleSheet } from 'react-native';
 import { OutlinedNavBackButton } from '../components/OutlinedNavBackButton';
 import { SettingsHeaderButton } from '../components/SettingsHeaderButton';
 import { V } from '../constants/vinlandTheme';
+import {
+  headerTitleBarContainerStyle,
+  headerTitleBarStyle,
+  smoothStackTransition,
+} from './headerNav';
 import WorkoutFormScreen from '../screens/WorkoutFormScreen';
 import WorkoutsListScreen from '../screens/WorkoutsListScreen';
 import type { WorkoutsStackParamList } from './types';
@@ -15,6 +20,7 @@ const layoutStyles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 6,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRightIos: {
     paddingRight: 10,
@@ -29,7 +35,8 @@ const headerChrome = {
     borderBottomWidth: V.outlineWidth,
     borderBottomColor: V.tabBarBorder,
   },
-  headerTitleStyle: { color: V.text, fontWeight: '600' as const, fontSize: 17 },
+  headerTitleStyle: headerTitleBarStyle,
+  headerTitleContainerStyle: headerTitleBarContainerStyle,
   headerTintColor: V.text,
   headerShadowVisible: false,
   contentStyle: { backgroundColor: V.bg },
@@ -46,8 +53,8 @@ export default function WorkoutsStack() {
     <Stack.Navigator
       screenOptions={{
         ...headerChrome,
-        animation: 'default',
         presentation: 'card',
+        ...smoothStackTransition,
         ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
       }}>
       <Stack.Screen
@@ -78,8 +85,8 @@ export default function WorkoutsStack() {
           title: route.params?.editId ? 'Edit workout' : 'New workout',
           headerBackVisible: false,
           headerTitleAlign: 'left',
-          animation: 'default',
           presentation: 'card',
+          ...smoothStackTransition,
           ...Platform.select({
             ios: {
               fullScreenGestureEnabled: true,
@@ -109,8 +116,9 @@ export default function WorkoutsStack() {
           }),
           headerLeftContainerStyle: {
             paddingLeft: Platform.OS === 'ios' ? 8 : 6,
-            paddingRight: 8,
+            paddingRight: 6,
             alignItems: 'center',
+            justifyContent: 'center',
           },
         })}
       />
