@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Pre-hydration value must match `userInterfaceStyle` in app.json and what `expo export` embeds
+ * in static HTML. Using `light` here causes a visible flash (light default shell → dark app)
+ * for dark-first apps after hydration.
  */
 export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -14,8 +16,8 @@ export function useColorScheme() {
   const colorScheme = useRNColorScheme();
 
   if (hasHydrated) {
-    return colorScheme;
+    return colorScheme ?? 'dark';
   }
 
-  return 'light';
+  return 'dark';
 }
