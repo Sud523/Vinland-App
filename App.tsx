@@ -1,14 +1,100 @@
+import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Platform, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import HomeScreen from './screens/HomeScreen';
+import { FirstLaunchOnboarding } from './components/FirstLaunchOnboarding';
+import { OutlinedNavBackButton } from './components/OutlinedNavBackButton';
+import { UserPrefsProvider } from './context/UserPrefsContext';
+import { V } from './constants/vinlandTheme';
+import MainTabs from './navigation/MainTabs';
+import type { RootStackParamList } from './navigation/types';
+import SettingsScreen from './screens/SettingsScreen';
+
+const navTheme: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: V.accent,
+    background: V.bg,
+    card: V.bg,
+    text: V.text,
+    border: V.borderMuted,
+    notification: V.text,
+  },
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <HomeScreen />
-      <StatusBar style="dark" />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <UserPrefsProvider>
+          <NavigationContainer theme={navTheme}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Main" component={MainTabs} />
+              <Stack.Screen
+                name="Settings"
+                component={SettingsScreen}
+                options={({ navigation }) => ({
+                  headerShown: true,
+                  title: 'Settings',
+                  headerBackVisible: false,
+                  ...Platform.select({
+                    ios: {
+                      unstable_headerLeftItems: () => [
+                        {
+                          type: 'custom' as const,
+                          hidesSharedBackground: true,
+                          element: (
+                            <OutlinedNavBackButton
+                              onPress={() => navigation.goBack()}
+                              containerStyle={{ marginLeft: 4 }}
+                            />
+                          ),
+                        },
+                      ],
+                    },
+                    default: {
+                      headerLeft: () => (
+                        <OutlinedNavBackButton
+                          onPress={() => navigation.goBack()}
+                          containerStyle={{ marginLeft: 8 }}
+                        />
+                      ),
+                    },
+                  }),
+                  headerLeftContainerStyle: {
+                    paddingLeft: Platform.OS === 'ios' ? 8 : 4,
+                    paddingRight: 12,
+                  },
+                  headerTitleAlign: 'left',
+                  headerStyle: {
+                    backgroundColor: V.bg,
+                  },
+                  headerTintColor: V.text,
+                  headerTitleStyle: { color: V.text, fontWeight: '600' },
+                  contentStyle: { backgroundColor: V.bg },
+                  headerShadowVisible: false,
+                })}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+          <FirstLaunchOnboarding />
+          <StatusBar style="light" />
+        </UserPrefsProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: V.bg,
+  },
+});

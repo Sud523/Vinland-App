@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { V } from '../constants/vinlandTheme';
+
 type WeightInputProps = {
   weight?: number;
   onWeightChange: (weight: number | undefined) => void;
+  /** After a weight is saved for this day, it cannot be edited until tomorrow. */
+  locked?: boolean;
 };
 
-export function WeightInput({ weight, onWeightChange }: WeightInputProps) {
+export function WeightInput({ weight, onWeightChange, locked = false }: WeightInputProps) {
   const [text, setText] = useState(weight != null ? String(weight) : '');
 
   useEffect(() => {
@@ -14,6 +18,9 @@ export function WeightInput({ weight, onWeightChange }: WeightInputProps) {
   }, [weight]);
 
   const commit = () => {
+    if (locked) {
+      return;
+    }
     const trimmed = text.trim();
     if (trimmed === '') {
       onWeightChange(undefined);
@@ -29,57 +36,64 @@ export function WeightInput({ weight, onWeightChange }: WeightInputProps) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Today&apos;s weight</Text>
+      <Text style={styles.label}>Today&apos;s weight (lb)</Text>
       <TextInput
         value={text}
-        onChangeText={setText}
+        onChangeText={locked ? undefined : setText}
         onEndEditing={commit}
         onSubmitEditing={commit}
         placeholder="e.g. 185.4"
-        placeholderTextColor="#C7C7CC"
+        placeholderTextColor={V.placeholder}
         keyboardType="decimal-pad"
         returnKeyType="done"
-        style={styles.input}
+        editable={!locked}
+        style={[styles.input, locked && styles.inputLocked]}
       />
-      <Text style={styles.hint}>Enter a number and tap done — it saves with your day.</Text>
+      <Text style={styles.hint}>
+        {locked
+          ? 'Locked for today after you saved a weight. It will unlock tomorrow.'
+          : 'Pounds (lb). Enter a number and tap done — it saves with your day.'}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: V.bgElevated,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: V.border,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#D1D1D6',
-    borderRadius: 12,
+    borderWidth: V.outlineWidth,
+    borderColor: V.border,
+    borderRadius: V.boxRadius,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 20,
-    color: '#1C1C1E',
-    backgroundColor: '#FAFAFA',
+    color: V.text,
+    backgroundColor: V.bgInput,
+  },
+  inputLocked: {
+    borderColor: V.borderMuted,
+    color: V.textSecondary,
+    opacity: 0.9,
   },
   hint: {
     marginTop: 10,
     fontSize: 13,
-    color: '#8E8E93',
+    color: V.textSecondary,
     lineHeight: 18,
   },
 });

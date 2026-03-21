@@ -2,55 +2,53 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { V } from '../constants/vinlandTheme';
-import type { ExerciseDefinition } from '../types';
-import { exerciseSummaryLines } from '../utils/workouts';
 
-type TaskItemProps = {
-  name: string;
-  completed: boolean;
+type Props = {
+  title: string;
+  subtitle?: string;
+  checked: boolean;
+  /** When true, tapping does nothing (locked checked state). */
+  disabled?: boolean;
   onToggle: () => void;
-  exercise?: ExerciseDefinition;
 };
 
-export function TaskItem({
-  name,
-  completed,
+/** Same row + checkbox styling as exercise `TaskItem` rows on Home. */
+export function NutritionCheckRow({
+  title,
+  subtitle,
+  checked,
+  disabled = false,
   onToggle,
-  exercise,
-}: TaskItemProps) {
-  const detailLines = exercise ? exerciseSummaryLines(exercise) : [];
-
+}: Props) {
   return (
     <Pressable
-      onPress={onToggle}
+      onPress={() => {
+        if (disabled) {
+          return;
+        }
+        onToggle();
+      }}
       style={({ pressed }) => [
         styles.row,
-        pressed && styles.rowPressed,
-        completed && styles.rowCompleted,
+        pressed && !disabled && styles.rowPressed,
+        checked && styles.rowCompleted,
       ]}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: completed }}
+      accessibilityState={{ checked, disabled }}
     >
-      <View style={[styles.checkbox, completed && styles.checkboxOn]}>
-        {completed ? (
+      <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+        {checked ? (
           <Text style={styles.checkboxMark} accessibilityLabel="Checked">
             ✓
           </Text>
         ) : null}
       </View>
       <View style={styles.textCol}>
-        <Text style={[styles.label, completed && styles.labelDone]}>{name}</Text>
-        {detailLines.length > 0 ? (
-          <View style={styles.detailBlock}>
-            {detailLines.map((line, i) => (
-              <Text
-                key={i}
-                style={[styles.detailLine, completed && styles.detailLineDone]}
-              >
-                {line}
-              </Text>
-            ))}
-          </View>
+        <Text style={[styles.label, checked && styles.labelDone]}>{title}</Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, checked && styles.subtitleDone]}>
+            {subtitle}
+          </Text>
         ) : null}
       </View>
     </Pressable>
@@ -111,15 +109,13 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: V.textTertiary,
   },
-  detailBlock: {
-    marginTop: 6,
-  },
-  detailLine: {
+  subtitle: {
     fontSize: 14,
     color: V.textSecondary,
+    marginTop: 6,
     lineHeight: 20,
   },
-  detailLineDone: {
+  subtitleDone: {
     color: V.textDim,
   },
 });
