@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { V } from '../constants/vinlandTheme';
 
@@ -57,18 +65,21 @@ export function WeightInput({ weight, onWeightChange, locked = false }: WeightIn
         editable={!locked}
         style={[styles.input, locked && styles.inputLocked]}
       />
-      {!locked ? (
-        <View style={styles.doneRow}>
-          <Pressable
+      <View style={styles.doneRow}>
+        {locked ? (
+          <Text style={styles.savedForTodayLabel}>Saved for today</Text>
+        ) : (
+          <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Done entering weight"
+            activeOpacity={0.88}
             onPress={handleDonePress}
-            style={({ pressed }) => [styles.doneButton, pressed && styles.doneButtonPressed]}
+            style={[styles.doneButton, Platform.OS === 'web' && styles.doneButtonWeb]}
           >
             <Text style={styles.doneButtonText}>Done</Text>
-          </Pressable>
-        </View>
-      ) : null}
+          </TouchableOpacity>
+        )}
+      </View>
       <Text style={styles.hint}>
         {locked
           ? 'Locked for today after you saved a weight. It will unlock tomorrow.'
@@ -113,7 +124,16 @@ const styles = StyleSheet.create({
   doneRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     marginTop: 10,
+    minHeight: 44,
+  },
+  savedForTodayLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: V.textSecondary,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
   },
   doneButton: {
     backgroundColor: V.accent,
@@ -125,8 +145,8 @@ const styles = StyleSheet.create({
     minWidth: 88,
     alignItems: 'center',
   },
-  doneButtonPressed: {
-    opacity: 0.88,
+  doneButtonWeb: {
+    cursor: 'pointer',
   },
   doneButtonText: {
     color: V.bg,
