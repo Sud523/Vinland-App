@@ -10,6 +10,8 @@ type TaskItemProps = {
   completed: boolean;
   onToggle: () => void;
   exercise?: ExerciseDefinition;
+  /** When true, row is visible but not tappable (e.g. workout not started). */
+  disabled?: boolean;
 };
 
 export function TaskItem({
@@ -17,19 +19,22 @@ export function TaskItem({
   completed,
   onToggle,
   exercise,
+  disabled = false,
 }: TaskItemProps) {
   const detailLines = exercise ? exerciseSummaryLines(exercise) : [];
 
   return (
     <Pressable
-      onPress={onToggle}
+      onPress={disabled ? undefined : onToggle}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.row,
-        pressed && styles.rowPressed,
+        pressed && !disabled && styles.rowPressed,
         completed && styles.rowCompleted,
+        disabled && styles.rowDisabled,
       ]}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: completed }}
+      accessibilityState={{ checked: completed, disabled }}
     >
       <View style={[styles.checkbox, completed && styles.checkboxOn]}>
         {completed ? (
@@ -81,6 +86,9 @@ const styles = StyleSheet.create({
   },
   rowPressed: {
     opacity: 0.88,
+  },
+  rowDisabled: {
+    opacity: 0.45,
   },
   rowCompleted: {
     backgroundColor: V.surfaceComplete,

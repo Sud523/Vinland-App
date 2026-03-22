@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,7 +30,11 @@ import {
   saveCheatMealState,
   saveData,
 } from '../utils/storage';
-import { currentWorkoutStreak } from '../utils/stats';
+import {
+  clearStaleWorkoutInProgress,
+  currentWorkoutStreak,
+  formatHms,
+} from '../utils/stats';
 import { isWorkoutSectionHeader, taskCountsTowardDailyProgress } from '../utils/workouts';
 
 export default function HomeScreen() {
@@ -39,6 +44,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [cheatMealUsed, setCheatMealUsed] = useState(false);
   const [caloriesOverDraft, setCaloriesOverDraft] = useState('0');
+  /** Forces timer re-render every second while a workout is in progress. */
+  const [workoutTick, setWorkoutTick] = useState(0);
 
   const date = localDateKey(new Date());
   const dateForDisplay = useMemo(() => parseDateKeyLocal(date), [date]);
@@ -76,6 +83,28 @@ export default function HomeScreen() {
   const exerciseTotal = progressTasks.length;
   const progressPct =
     exerciseTotal > 0 ? Math.round((exercisesDone / exerciseTotal) * 100) : 0;
+
+  const workoutActive = today?.workoutStartedAtMs != null;
+  const hasEndedWorkoutSessionToday =
+    (today?.workoutSessionDurationsSeconds?.length ?? 0) > 0;
+  const canToggleExercises = workoutActive || hasEndedWorkoutSessionToday;
+
+  useEffect(() => {
+    if (!workoutActive) {
+      return;
+    }
+    const id = setInterval(() => {
+      setWorkoutTick((n) => n + 1);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [workoutActive]);
+
+  const elapsedWorkoutSeconds = useMemo(() => {
+    if (!workoutActive || today?.workoutStartedAtMs == null) {
+      return 0;
+    }
+    return Math.max(0, Math.floor((Date.now() - today.workoutStartedAtMs) / 1000));
+  }, [workoutActive, today?.workoutStartedAtMs, workoutTick]);
 
   const persist = useCallback(async (next: Day[]) => {
     setDays(next);
@@ -127,7 +156,22 @@ export default function HomeScreen() {
           return;
         }
 
-        setDays(next);
+        const cleaned = clearStaleWorkoutInProgress(next, now);
+        let dirty = false;
+        for (let i = 0; i < next.length; i += 1) {
+          if (next[i].workoutStartedAtMs !== cleaned[i]?.workoutStartedAtMs) {
+            dirty = true;
+            break;
+          }
+        }
+        if (dirty) {
+          try {
+            await saveData(cleaned);
+          } catch {
+            //
+          }
+        }
+        setDays(cleaned);
 
         try {
           await refreshCheatMeal();
@@ -184,11 +228,44 @@ export default function HomeScreen() {
     if (!today || todayIndex < 0) {
       return;
     }
+    if (!canToggleExercises) {
+      return;
+    }
     const tasks = today.tasks.map((t, i) =>
       i === taskIndex ? { ...t, completed: !t.completed } : t,
     );
     const next = [...days];
     next[todayIndex] = { ...today, tasks };
+    void persist(next);
+  };
+
+  const handleStartWorkout = () => {
+    if (!today || todayIndex < 0 || today.workoutStartedAtMs != null) {
+      return;
+    }
+    const next = [...days];
+    next[todayIndex] = { ...today, workoutStartedAtMs: Date.now() };
+    void persist(next);
+  };
+
+  const handleEndWorkout = () => {
+    if (!today || todayIndex < 0 || today.workoutStartedAtMs == null) {
+      return;
+    }
+    const durationSec = Math.max(
+      0,
+      Math.floor((Date.now() - today.workoutStartedAtMs) / 1000),
+    );
+    const prevDurations = today.workoutSessionDurationsSeconds ?? [];
+    const nextDurations =
+      durationSec > 0 ? [...prevDurations, durationSec] : prevDurations;
+    const next = [...days];
+    next[todayIndex] = {
+      ...today,
+      workoutStartedAtMs: undefined,
+      workoutSessionDurationsSeconds:
+        nextDurations.length > 0 ? nextDurations : undefined,
+    };
     void persist(next);
   };
 
@@ -245,13 +322,41 @@ export default function HomeScreen() {
           <Text style={styles.welcome}>Welcome, {displayName}</Text>
         ) : null}
         <View style={styles.hero}>
-          <Text style={styles.weekday}>{weekday}</Text>
+          <View style={styles.heroDateRow}>
+            <Text style={[styles.weekday, styles.heroWeekdayFlex]} numberOfLines={1}>
+              {weekday}
+            </Text>
+            <Text style={styles.streakInline} numberOfLines={1}>
+              <Text style={styles.streakLabelInline}>Streak: </Text>
+              <Text style={styles.streakNumberInline}>{streak}</Text>
+            </Text>
+          </View>
           <Text style={styles.calendarDate}>{calendarLine}</Text>
         </View>
 
         <View style={styles.workoutCard}>
           <Text style={styles.cardTitle}>Today&apos;s workout</Text>
-          <Text style={styles.dateKey}>{date}</Text>
+          <View style={styles.workoutControlsRow}>
+            <Pressable
+              onPress={workoutActive ? handleEndWorkout : handleStartWorkout}
+              style={({ pressed }) => [
+                styles.workoutActionBtn,
+                pressed && styles.workoutActionBtnPressed,
+              ]}
+            >
+              <Text style={styles.workoutActionBtnText}>
+                {workoutActive ? 'End workout' : 'Start workout'}
+              </Text>
+            </Pressable>
+            <Text style={styles.workoutTimer} accessibilityLiveRegion="polite">
+              {formatHms(elapsedWorkoutSeconds)}
+            </Text>
+          </View>
+          {!canToggleExercises && today.tasks.length > 0 ? (
+            <Text style={styles.workoutGateHint}>
+              Start your workout to check off exercises.
+            </Text>
+          ) : null}
 
           {today.tasks.length === 0 ? (
             <Text style={styles.emptyWorkout}>
@@ -277,27 +382,12 @@ export default function HomeScreen() {
                   key={`${task.name}-${index}`}
                   task={task}
                   isFirstRow={index === 0}
+                  exercisesLocked={!canToggleExercises}
                   onToggle={() => handleToggleTask(index)}
                 />
               ))}
             </>
           )}
-        </View>
-
-        <Text style={styles.sectionHeading}>Streak</Text>
-        <View style={styles.streakCard}>
-          <Text style={styles.streakValue}>
-            {streak}
-            <Text style={styles.streakSuffix}>
-              {' '}
-              day{streak === 1 ? '' : 's'}
-            </Text>
-          </Text>
-          <Text style={styles.streakHint}>
-            Consecutive days where every exercise that counts toward your plan is
-            checked off. Optional exercises don’t count. If today isn’t finished yet,
-            yesterday can keep the streak alive.
-          </Text>
         </View>
 
         <Text style={styles.sectionHeading}>Nutrition</Text>
@@ -367,10 +457,12 @@ export default function HomeScreen() {
 function TodayTaskRow({
   task,
   isFirstRow,
+  exercisesLocked,
   onToggle,
 }: {
   task: Task;
   isFirstRow: boolean;
+  exercisesLocked: boolean;
   onToggle: () => void;
 }) {
   if (isWorkoutSectionHeader(task.name)) {
@@ -391,6 +483,7 @@ function TodayTaskRow({
       name={task.name}
       completed={task.completed}
       exercise={task.exercise}
+      disabled={exercisesLocked}
       onToggle={onToggle}
     />
   );
@@ -429,11 +522,35 @@ const styles = StyleSheet.create({
   hero: {
     marginBottom: 24,
   },
+  heroDateRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  heroWeekdayFlex: {
+    flex: 1,
+    minWidth: 0,
+  },
   weekday: {
     fontSize: 36,
     fontWeight: '700',
     color: V.text,
     letterSpacing: -0.8,
+  },
+  streakInline: {
+    flexShrink: 0,
+  },
+  streakLabelInline: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: V.textSecondary,
+  },
+  streakNumberInline: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: V.streakFlame,
+    letterSpacing: -0.3,
   },
   calendarDate: {
     fontSize: 17,
@@ -452,12 +569,46 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: V.text,
+    marginBottom: 12,
   },
-  dateKey: {
-    fontSize: 13,
-    color: V.textTertiary,
-    marginTop: 4,
+  workoutControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     marginBottom: 16,
+  },
+  workoutActionBtn: {
+    backgroundColor: V.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: 'rgba(0, 0, 0, 0.5)',
+    minWidth: 132,
+    alignItems: 'center',
+  },
+  workoutActionBtnPressed: {
+    opacity: 0.88,
+  },
+  workoutActionBtnText: {
+    color: V.bg,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  workoutTimer: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: V.text,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: 0.5,
+  },
+  workoutGateHint: {
+    fontSize: 14,
+    color: V.textSecondary,
+    marginTop: -8,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   emptyWorkout: {
     fontSize: 15,
@@ -558,30 +709,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: V.textDim,
-  },
-  streakCard: {
-    backgroundColor: V.bgElevated,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    padding: 20,
-    marginBottom: 16,
-  },
-  streakValue: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: V.streakFlame,
-    letterSpacing: -1,
-  },
-  streakSuffix: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: V.textSecondary,
-  },
-  streakHint: {
-    marginTop: 10,
-    fontSize: 14,
-    color: V.textSecondary,
-    lineHeight: 20,
   },
 });

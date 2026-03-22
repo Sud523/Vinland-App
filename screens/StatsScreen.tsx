@@ -9,7 +9,7 @@ import { V } from '../constants/vinlandTheme';
 import type { Day } from '../types';
 import { parseDateKeyLocal } from '../utils/date';
 import { getLatestWeightEntry } from '../utils/journalWeight';
-import { calorieGoalHitStreak, computeStats } from '../utils/stats';
+import { calorieGoalHitStreak, computeStats, formatHms } from '../utils/stats';
 import { loadData, loadWeightGoal, type WeightGoalState } from '../utils/storage';
 
 function formatDateKey(key: string): string {
@@ -153,6 +153,19 @@ export default function StatsScreen() {
           label="Calorie goal streak"
           value={`${calorieStreak} day${calorieStreak === 1 ? '' : 's'}`}
           hint="Consecutive calendar days (today backward) you marked hitting your calorie goal on Home"
+        />
+        <StatCard
+          label="Average workout time"
+          value={
+            stats.avgWorkoutSessionSeconds != null
+              ? formatHms(Math.round(stats.avgWorkoutSessionSeconds))
+              : '—'
+          }
+          hint={
+            stats.workoutSessionCount > 0
+              ? `Mean duration of ${stats.workoutSessionCount} ended session${stats.workoutSessionCount === 1 ? '' : 's'} from Home (Start workout → End workout).`
+              : 'Use Start workout and End workout on Home to log session lengths.'
+          }
         />
 
         <Text style={styles.sectionTitle}>Weight goal</Text>

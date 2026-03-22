@@ -3,6 +3,44 @@ import type { Day } from '../types';
 import { localDateKey } from './date';
 import { isWorkoutSectionHeader, taskCountsTowardDailyProgress } from './workouts';
 
+/** Format seconds as HH:MM:SS for timers and averages. */
+export function formatHms(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+/** Drop in-progress workout flags from calendar days before today (abandoned sessions). */
+export function clearStaleWorkoutInProgress(days: Day[], now: Date = new Date()): Day[] {
+  const todayKey = localDateKey(now);
+  return days.map((d) => {
+    if (d.date >= todayKey || d.workoutStartedAtMs == null) {
+      return d;
+    }
+    return { ...d, workoutStartedAtMs: undefined };
+  });
+}
+
+function collectWorkoutSessionSeconds(days: Day[]): { sum: number; count: number } {
+  let sum = 0;
+  let count = 0;
+  for (const d of days) {
+    const arr = d.workoutSessionDurationsSeconds;
+    if (!Array.isArray(arr)) {
+      continue;
+    }
+    for (const sec of arr) {
+      if (typeof sec === 'number' && Number.isFinite(sec) && sec > 0) {
+        sum += sec;
+        count += 1;
+      }
+    }
+  }
+  return { sum, count };
+}
+
 /**
  * A day “counts” for streaks when every exercise that affects progress/stats is
  * completed. Optional-only days don’t advance streak from optional checkboxes.
@@ -38,6 +76,9 @@ export type StatsSummary = {
   avgWeight: number | null;
   bestStreak: number;
   weightEntries: number;
+  /** Mean length (seconds) of all ended “Start workout” sessions across days, or null if none. */
+  avgWorkoutSessionSeconds: number | null;
+  workoutSessionCount: number;
 };
 
 export function computeStats(days: Day[]): StatsSummary {
@@ -81,6 +122,10 @@ export function computeStats(days: Day[]): StatsSummary {
     }
   }
 
+  const { sum: sessionSum, count: sessionCount } = collectWorkoutSessionSeconds(sorted);
+  const avgWorkoutSessionSeconds =
+    sessionCount > 0 ? sessionSum / sessionCount : null;
+
   return {
     daysLogged: days.length,
     daysWithActivity,
@@ -90,6 +135,8 @@ export function computeStats(days: Day[]): StatsSummary {
     avgWeight,
     bestStreak,
     weightEntries: weights.length,
+    avgWorkoutSessionSeconds,
+    workoutSessionCount: sessionCount,
   };
 }
 

@@ -69,6 +69,13 @@ export type Day = {
   calorieGoalHit?: boolean;
   /** Calories over daily goal (0 = on target). Meaningful when calorieGoalHit. */
   caloriesOver?: number;
+  /**
+   * Wall time (ms) when the user tapped Start workout for this calendar day.
+   * Cleared when they tap End. Not restored after app restart mid-session is still same day.
+   */
+  workoutStartedAtMs?: number;
+  /** Length in seconds of each completed workout session ended on this day. */
+  workoutSessionDurationsSeconds?: number[];
 };
 
 /** Draft row in the Workouts screen editor before validation. */
