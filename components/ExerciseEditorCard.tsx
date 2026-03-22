@@ -9,7 +9,12 @@ import {
 } from 'react-native';
 
 import { V, switchThumb, switchTrack } from '../constants/vinlandTheme';
-import type { ExerciseFormInput } from '../types';
+import type {
+  CardioIntervalMeasure,
+  CardioPattern,
+  ExerciseFormInput,
+  ExerciseKind,
+} from '../types';
 
 type Props = {
   index: number;
@@ -22,6 +27,29 @@ type Props = {
   isDragging?: boolean;
 };
 
+function Chip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.chip,
+        selected ? styles.chipOn : styles.chipIdle,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export function ExerciseEditorCard({
   index,
   value,
@@ -33,6 +61,108 @@ export function ExerciseEditorCard({
 }: Props) {
   const update = (patch: Partial<ExerciseFormInput>) => {
     onChange({ ...value, ...patch });
+  };
+
+  const setKind = (kind: ExerciseKind) => {
+    if (kind === 'weighted') {
+      onChange({
+        ...value,
+        kind: 'weighted',
+        cardioPattern: 'interval',
+        cardioIntervalMeasure: 'time',
+        distanceMilesStr: '',
+        paceStr: '',
+        distancePhases: [],
+      });
+      return;
+    }
+    if (kind === 'circuit') {
+      onChange({
+        ...value,
+        kind: 'circuit',
+        timeBased: false,
+        phases: [],
+        restMinutesStr: '',
+        distancePhases: [],
+        distanceMilesStr: '',
+        paceStr: '',
+        repsStr: value.repsStr || '10',
+        cardioPattern: 'interval',
+        cardioIntervalMeasure: 'time',
+      });
+      return;
+    }
+    onChange({
+      ...value,
+      kind: 'cardio',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      timeBased: true,
+      repsUntilFailure: false,
+      repsStr: '',
+      phases:
+        value.phases.length > 0
+          ? value.phases
+          : [{ label: '', minutesStr: '' }],
+      distancePhases: [],
+      distanceMilesStr: '',
+      paceStr: '',
+    });
+  };
+
+  const setCardioPattern = (cardioPattern: CardioPattern) => {
+    if (cardioPattern === 'steady_distance') {
+      onChange({
+        ...value,
+        cardioPattern: 'steady_distance',
+        timeBased: false,
+        phases: [],
+        restMinutesStr: '',
+        repsUntilFailure: false,
+        repsStr: '',
+        distancePhases: [],
+      });
+      return;
+    }
+    onChange({
+      ...value,
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      timeBased: true,
+      phases:
+        value.phases.length > 0
+          ? value.phases
+          : [{ label: '', minutesStr: '' }],
+      distanceMilesStr: '',
+      paceStr: '',
+      distancePhases: [],
+    });
+  };
+
+  const setCardioIntervalMeasure = (cardioIntervalMeasure: CardioIntervalMeasure) => {
+    if (cardioIntervalMeasure === 'time') {
+      onChange({
+        ...value,
+        cardioIntervalMeasure: 'time',
+        timeBased: true,
+        phases:
+          value.phases.length > 0
+            ? value.phases
+            : [{ label: '', minutesStr: '' }],
+        distancePhases: [],
+      });
+      return;
+    }
+    onChange({
+      ...value,
+      cardioIntervalMeasure: 'distance',
+      timeBased: false,
+      phases: [],
+      distancePhases:
+        value.distancePhases.length > 0
+          ? value.distancePhases
+          : [{ label: '', milesStr: '' }],
+    });
   };
 
   const setTimeBased = (timeBased: boolean) => {
@@ -79,6 +209,54 @@ export function ExerciseEditorCard({
     update({ phases: value.phases.filter((_, i) => i !== phaseIndex) });
   };
 
+  const addDistancePhase = () => {
+    update({
+      distancePhases: [...value.distancePhases, { label: '', milesStr: '' }],
+    });
+  };
+
+  const updateDistancePhase = (
+    phaseIndex: number,
+    patch: Partial<{ label: string; milesStr: string }>,
+  ) => {
+    const distancePhases = value.distancePhases.map((p, i) =>
+      i === phaseIndex ? { ...p, ...patch } : p,
+    );
+    update({ distancePhases });
+  };
+
+  const removeDistancePhase = (phaseIndex: number) => {
+    update({
+      distancePhases: value.distancePhases.filter((_, i) => i !== phaseIndex),
+    });
+  };
+
+  const showWeightedTimeSwitch =
+    value.kind === 'weighted' || value.kind === 'circuit';
+
+  const showRepFields =
+    (value.kind === 'weighted' || value.kind === 'circuit') && !value.timeBased;
+
+  const showTimePhasesWeighted =
+    (value.kind === 'weighted' || value.kind === 'circuit') && value.timeBased;
+
+  const showCardioSteady =
+    value.kind === 'cardio' && value.cardioPattern === 'steady_distance';
+
+  const showCardioIntervalTime =
+    value.kind === 'cardio' &&
+    value.cardioPattern === 'interval' &&
+    value.cardioIntervalMeasure === 'time';
+
+  const showCardioIntervalDistance =
+    value.kind === 'cardio' &&
+    value.cardioPattern === 'interval' &&
+    value.cardioIntervalMeasure === 'distance';
+
+  const showSets =
+    !showCardioSteady &&
+    (showCardioIntervalTime || showCardioIntervalDistance || showRepFields || showTimePhasesWeighted);
+
   return (
     <View style={[styles.card, isDragging && styles.cardDragging]}>
       <View style={styles.cardHeader}>
@@ -118,32 +296,125 @@ export function ExerciseEditorCard({
       <TextInput
         value={value.name}
         onChangeText={(name) => update({ name })}
-        placeholder="Bench Press"
+        placeholder="Bench press, run, etc."
         placeholderTextColor={V.placeholder}
         style={styles.input}
       />
 
-      <Text style={styles.fieldLabel}>Sets</Text>
-      <TextInput
-        value={value.setsStr}
-        onChangeText={(setsStr) => update({ setsStr })}
-        placeholder="4"
-        placeholderTextColor={V.placeholder}
-        keyboardType="number-pad"
-        style={styles.input}
-      />
-
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>Time-based (no reps)</Text>
-        <Switch
-          value={value.timeBased}
-          onValueChange={setTimeBased}
-          trackColor={switchTrack}
-          thumbColor={value.timeBased ? switchThumb.on : switchThumb.off}
+      <Text style={styles.fieldLabel}>Exercise type</Text>
+      <View style={styles.chipRow}>
+        <Chip
+          label="Weighted"
+          selected={value.kind === 'weighted'}
+          onPress={() => setKind('weighted')}
+        />
+        <Chip
+          label="Cardio"
+          selected={value.kind === 'cardio'}
+          onPress={() => setKind('cardio')}
+        />
+        <Chip
+          label="Circuit"
+          selected={value.kind === 'circuit'}
+          onPress={() => setKind('circuit')}
         />
       </View>
 
-      {!value.timeBased ? (
+      {value.kind === 'cardio' ? (
+        <>
+          <Text style={styles.fieldLabel}>Cardio format</Text>
+          <View style={styles.chipRow}>
+            <Chip
+              label="Interval"
+              selected={value.cardioPattern === 'interval'}
+              onPress={() => setCardioPattern('interval')}
+            />
+            <Chip
+              label="Distance"
+              selected={value.cardioPattern === 'steady_distance'}
+              onPress={() => setCardioPattern('steady_distance')}
+            />
+          </View>
+        </>
+      ) : null}
+
+      {value.kind === 'cardio' && value.cardioPattern === 'interval' ? (
+        <>
+          <Text style={styles.fieldLabel}>Interval measure</Text>
+          <View style={styles.chipRow}>
+            <Chip
+              label="Time based"
+              selected={value.cardioIntervalMeasure === 'time'}
+              onPress={() => setCardioIntervalMeasure('time')}
+            />
+            <Chip
+              label="Distance based"
+              selected={value.cardioIntervalMeasure === 'distance'}
+              onPress={() => setCardioIntervalMeasure('distance')}
+            />
+          </View>
+        </>
+      ) : null}
+
+      {value.kind === 'circuit' ? (
+        <Text style={styles.circuitHint}>
+          Circuit sequencing is coming next. For now use sets, reps, or timed blocks like a
+          regular strength move.
+        </Text>
+      ) : null}
+
+      {showCardioSteady ? (
+        <>
+          <Text style={styles.fieldLabel}>Distance (miles)</Text>
+          <TextInput
+            value={value.distanceMilesStr}
+            onChangeText={(distanceMilesStr) => update({ distanceMilesStr })}
+            placeholder="e.g. 3.1"
+            placeholderTextColor={V.placeholder}
+            keyboardType="decimal-pad"
+            style={styles.input}
+          />
+          <Text style={styles.fieldLabel}>Pace (optional)</Text>
+          <TextInput
+            value={value.paceStr}
+            onChangeText={(paceStr) => update({ paceStr })}
+            placeholder="e.g. 8:30 / mi"
+            placeholderTextColor={V.placeholder}
+            style={styles.input}
+          />
+          <Text style={styles.sectionHint}>
+            Steady cardio: no sets. Won&apos;t appear on the Timer tab.
+          </Text>
+        </>
+      ) : null}
+
+      {showSets ? (
+        <>
+          <Text style={styles.fieldLabel}>Sets</Text>
+          <TextInput
+            value={value.setsStr}
+            onChangeText={(setsStr) => update({ setsStr })}
+            placeholder="4"
+            placeholderTextColor={V.placeholder}
+            keyboardType="number-pad"
+            style={styles.input}
+          />
+        </>
+      ) : null}
+
+      {showWeightedTimeSwitch ? (
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Time-based (no reps)</Text>
+          <Switch
+            value={value.timeBased}
+            onValueChange={setTimeBased}
+            trackColor={switchTrack}
+            thumbColor={value.timeBased ? switchThumb.on : switchThumb.off}
+          />
+        </View>
+      ) : null}
+
+      {showRepFields ? (
         <>
           <Text style={styles.fieldLabel}>Reps per set</Text>
           <View style={styles.repsModeRow}>
@@ -191,11 +462,12 @@ export function ExerciseEditorCard({
             />
           )}
         </>
-      ) : (
+      ) : null}
+
+      {showTimePhasesWeighted || showCardioIntervalTime ? (
         <>
           <Text style={styles.sectionHint}>
-            Add one or more working blocks (label + minutes). Example: Hard 4,
-            Light 3.
+            Add one or more working blocks (label + minutes). Example: Hard 4, Light 3.
           </Text>
           {value.phases.map((phase, pi) => (
             <View key={pi} style={styles.phaseBlock}>
@@ -245,7 +517,63 @@ export function ExerciseEditorCard({
             Optional. Applied after each full round of the working blocks above.
           </Text>
         </>
-      )}
+      ) : null}
+
+      {showCardioIntervalDistance ? (
+        <>
+          <Text style={styles.sectionHint}>
+            Distance for each part of one interval round (miles). Same structure as timed
+            intervals, but no Timer tab.
+          </Text>
+          {value.distancePhases.map((phase, pi) => (
+            <View key={pi} style={styles.phaseBlock}>
+              <View style={styles.phaseHeader}>
+                <Text style={styles.phaseLabel}>Distance block {pi + 1}</Text>
+                {value.distancePhases.length > 1 ? (
+                  <Pressable onPress={() => removeDistancePhase(pi)} hitSlop={8}>
+                    <Text style={styles.removePhase}>Remove</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <TextInput
+                value={phase.label}
+                onChangeText={(label) => updateDistancePhase(pi, { label })}
+                placeholder="Label (e.g. Hard, Easy)"
+                placeholderTextColor={V.placeholder}
+                style={styles.input}
+              />
+              <Text style={styles.fieldLabel}>Miles</Text>
+              <TextInput
+                value={phase.milesStr}
+                onChangeText={(milesStr) => updateDistancePhase(pi, { milesStr })}
+                placeholder="0.25"
+                placeholderTextColor={V.placeholder}
+                keyboardType="decimal-pad"
+                style={styles.input}
+              />
+            </View>
+          ))}
+          <Pressable
+            onPress={addDistancePhase}
+            style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.secondaryBtnText}>+ Add distance block</Text>
+          </Pressable>
+
+          <Text style={styles.fieldLabel}>Rest between sets (minutes)</Text>
+          <TextInput
+            value={value.restMinutesStr}
+            onChangeText={(restMinutesStr) => update({ restMinutesStr })}
+            placeholder="3"
+            placeholderTextColor={V.placeholder}
+            keyboardType="decimal-pad"
+            style={styles.input}
+          />
+          <Text style={styles.restHint}>
+            Optional. After each full round of the distance blocks above.
+          </Text>
+        </>
+      ) : null}
 
       <Text style={styles.fieldLabel}>Notes (optional)</Text>
       <TextInput
@@ -346,6 +674,39 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  chip: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderMuted,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: V.boxRadius,
+    backgroundColor: V.bgInput,
+  },
+  chipOn: {
+    borderColor: V.border,
+    backgroundColor: V.bgElevated,
+  },
+  chipIdle: {},
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: V.textSecondary,
+  },
+  chipTextOn: {
+    color: V.accent,
+  },
+  circuitHint: {
+    fontSize: 14,
+    color: V.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   input: {
     borderWidth: V.outlineWidth,

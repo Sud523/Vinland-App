@@ -28,6 +28,7 @@ import {
   getScheduledWorkoutSegments,
   isWorkoutSectionHeader,
   removeTaskIndexRange,
+  savedWorkoutExerciseCount,
   savedWorkoutLabel,
   savedWorkoutToTasks,
   taskCountsTowardDailyProgress,
@@ -426,8 +427,8 @@ export default function WeeklyScreen() {
                     </Text>
                   ) : null}
                   <Text style={styles.savedMeta}>
-                    {item.exercises.length} exercise
-                    {item.exercises.length === 1 ? '' : 's'}
+                    {savedWorkoutExerciseCount(item)} exercise
+                    {savedWorkoutExerciseCount(item) === 1 ? '' : 's'}
                   </Text>
                 </Pressable>
               )}

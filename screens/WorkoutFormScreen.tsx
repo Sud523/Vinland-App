@@ -6,6 +6,7 @@ import {
   Alert,
   Keyboard,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,23 +19,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ExerciseEditorCard } from '../components/ExerciseEditorCard';
 import { V } from '../constants/vinlandTheme';
 import type { WorkoutsStackParamList } from '../navigation/types';
-import type { Day, ExerciseFormInput, SavedWorkout } from '../types';
+import type { Day, ExerciseDefinition, ExerciseFormInput, SavedWorkout } from '../types';
 import { localDateKey } from '../utils/date';
 import { loadData, loadSavedWorkouts, saveData, saveSavedWorkouts } from '../utils/storage';
 import {
   emptyExerciseForm,
   exerciseDefinitionToFormInput,
-  formsToDefinitions,
   newSavedWorkoutId,
   savedWorkoutToTasks,
+  sectionedFormsToDefinitions,
 } from '../utils/workouts';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutForm'>;
 
 type ExerciseRow = { id: string; form: ExerciseFormInput };
 
-function initialExerciseRows(): ExerciseRow[] {
-  return [{ id: newSavedWorkoutId(), form: emptyExerciseForm() }];
+function newExerciseRow(): ExerciseRow {
+  return { id: newSavedWorkoutId(), form: emptyExerciseForm() };
+}
+
+function rowsFromDefinitions(exercises: ExerciseDefinition[]): ExerciseRow[] {
+  if (exercises.length === 0) {
+    return [];
+  }
+  return exercises.map((ex) => ({
+    id: newSavedWorkoutId(),
+    form: exerciseDefinitionToFormInput(ex),
+  }));
+}
+
+function defaultWorkoutRows(): ExerciseRow[] {
+  return [newExerciseRow()];
 }
 
 export default function WorkoutFormScreen({ navigation, route }: Props) {
@@ -44,24 +59,17 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDescription, setWorkoutDescription] = useState('');
-  const [exerciseRows, setExerciseRows] = useState<ExerciseRow[]>(initialExerciseRows);
-
-  const exerciseForms = exerciseRows.map((r) => r.form);
+  const [warmUpRows, setWarmUpRows] = useState<ExerciseRow[]>([]);
+  const [workoutRows, setWorkoutRows] = useState<ExerciseRow[]>(defaultWorkoutRows);
+  const [coolDownRows, setCoolDownRows] = useState<ExerciseRow[]>([]);
 
   const populateFromWorkout = useCallback((w: SavedWorkout) => {
     setEditingId(w.id);
     setWorkoutName(w.title);
     setWorkoutDescription(w.description ?? '');
-    if (w.exercises.length === 0) {
-      setExerciseRows(initialExerciseRows());
-    } else {
-      setExerciseRows(
-        w.exercises.map((ex) => ({
-          id: newSavedWorkoutId(),
-          form: exerciseDefinitionToFormInput(ex),
-        })),
-      );
-    }
+    setWarmUpRows(rowsFromDefinitions(w.warmUp));
+    setWorkoutRows(rowsFromDefinitions(w.workout));
+    setCoolDownRows(rowsFromDefinitions(w.coolDown));
   }, []);
 
   useFocusEffect(
@@ -72,7 +80,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         setEditingId(null);
         setWorkoutName('');
         setWorkoutDescription('');
-        setExerciseRows(initialExerciseRows());
+        setWarmUpRows([]);
+        setWorkoutRows(defaultWorkoutRows());
+        setCoolDownRows([]);
         return () => {
           cancelled = true;
         };
@@ -81,7 +91,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       setEditingId(null);
       setWorkoutName('');
       setWorkoutDescription('');
-      setExerciseRows(initialExerciseRows());
+      setWarmUpRows([]);
+      setWorkoutRows(defaultWorkoutRows());
+      setCoolDownRows([]);
 
       void loadSavedWorkouts().then((list) => {
         if (cancelled) {
@@ -101,27 +113,40 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     }, [editId, navigation, populateFromWorkout]),
   );
 
-  const updateForm = useCallback((index: number, next: ExerciseFormInput) => {
-    setExerciseRows((prev) =>
+  const updateWarmUpForm = useCallback((index: number, next: ExerciseFormInput) => {
+    setWarmUpRows((prev) =>
       prev.map((r, i) => (i === index ? { ...r, form: next } : r)),
     );
   }, []);
 
-  const addExerciseSlot = () => {
-    setExerciseRows((prev) => [
-      ...prev,
-      { id: newSavedWorkoutId(), form: emptyExerciseForm() },
-    ]);
-  };
-
-  const removeExerciseSlot = useCallback((index: number) => {
-    setExerciseRows((prev) =>
-      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
+  const updateWorkoutForm = useCallback((index: number, next: ExerciseFormInput) => {
+    setWorkoutRows((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, form: next } : r)),
     );
   }, []);
 
-  const onDragEnd = useCallback(({ data }: { data: ExerciseRow[] }) => {
-    setExerciseRows(data);
+  const updateCoolDownForm = useCallback((index: number, next: ExerciseFormInput) => {
+    setCoolDownRows((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, form: next } : r)),
+    );
+  }, []);
+
+  const removeWarmUp = useCallback((index: number) => {
+    setWarmUpRows((prev) =>
+      prev.length <= 1 ? [] : prev.filter((_, i) => i !== index),
+    );
+  }, []);
+
+  const removeWorkout = useCallback((index: number) => {
+    setWorkoutRows((prev) =>
+      prev.length <= 1 ? [] : prev.filter((_, i) => i !== index),
+    );
+  }, []);
+
+  const removeCoolDown = useCallback((index: number) => {
+    setCoolDownRows((prev) =>
+      prev.length <= 1 ? [] : prev.filter((_, i) => i !== index),
+    );
   }, []);
 
   const validateWorkoutName = (): boolean => {
@@ -132,13 +157,11 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     return true;
   };
 
-  const parseExercises = () => {
-    const result = formsToDefinitions(exerciseForms);
-    if (!result.ok) {
-      Alert.alert('Check exercises', result.message);
-      return null;
-    }
-    return result.exercises;
+  const parseSections = () => {
+    const warmForms = warmUpRows.map((r) => r.form);
+    const mainForms = workoutRows.map((r) => r.form);
+    const coolForms = coolDownRows.map((r) => r.form);
+    return sectionedFormsToDefinitions(warmForms, mainForms, coolForms);
   };
 
   const goBackToList = () => {
@@ -150,8 +173,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     if (!validateWorkoutName()) {
       return;
     }
-    const exercises = parseExercises();
-    if (!exercises) {
+    const parsed = parseSections();
+    if (!parsed.ok) {
+      Alert.alert('Check exercises', parsed.message);
       return;
     }
 
@@ -181,7 +205,13 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           if (w.id !== currentEditId) {
             return w;
           }
-          const updated: SavedWorkout = { ...w, title, exercises };
+          const updated: SavedWorkout = {
+            ...w,
+            title,
+            warmUp: parsed.warmUp,
+            workout: parsed.workout,
+            coolDown: parsed.coolDown,
+          };
           if (description != null) {
             updated.description = description;
           } else {
@@ -194,7 +224,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         const nextSaved: SavedWorkout = {
           id: newSavedWorkoutId(),
           title,
-          exercises,
+          warmUp: parsed.warmUp,
+          workout: parsed.workout,
+          coolDown: parsed.coolDown,
           ...(description != null ? { description } : {}),
         };
         await saveSavedWorkouts([...list, nextSaved]);
@@ -224,15 +256,18 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     if (!validateWorkoutName()) {
       return;
     }
-    const exercises = parseExercises();
-    if (!exercises) {
+    const parsed = parseSections();
+    if (!parsed.ok) {
+      Alert.alert('Check exercises', parsed.message);
       return;
     }
 
     const newTasks = savedWorkoutToTasks({
       id: editingId ?? 'draft',
       title: workoutName.trim(),
-      exercises,
+      warmUp: parsed.warmUp,
+      workout: parsed.workout,
+      coolDown: parsed.coolDown,
     });
 
     try {
@@ -271,113 +306,154 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     goBackToList();
   };
 
-  const renderItem = useCallback(
-    ({ item, drag, isActive, getIndex }: RenderItemParams<ExerciseRow>) => {
-      const index = getIndex() ?? 0;
-      return (
-        <ScaleDecorator>
-          <ExerciseEditorCard
-            index={index}
-            value={item.form}
-            onChange={(next) => updateForm(index, next)}
-            onRemove={() => removeExerciseSlot(index)}
-            canRemove={exerciseRows.length > 1}
-            onDrag={drag}
-            isDragging={isActive}
-          />
-        </ScaleDecorator>
-      );
-    },
-    [exerciseRows.length, removeExerciseSlot, updateForm],
-  );
-
-  const listHeader = (
-    <View style={styles.scrollContent}>
-      <Text style={styles.sub}>
-        Name the workout, then set each exercise. Long-press the three dashes in the top
-        left of a card to drag and reorder. Mark an exercise optional at the bottom of the
-        card if it shouldn’t count toward daily progress or stats. Use Failure for reps to
-        failure, or time-based blocks for intervals (e.g. Hard 4 min).
-      </Text>
-
-      <Text style={styles.label}>Workout name</Text>
-      <TextInput
-        value={workoutName}
-        onChangeText={setWorkoutName}
-        placeholder="Push Day"
-        placeholderTextColor={V.placeholder}
-        style={styles.input}
+  const renderSectionList = (
+    rows: ExerciseRow[],
+    setRows: React.Dispatch<React.SetStateAction<ExerciseRow[]>>,
+    updateForm: (index: number, next: ExerciseFormInput) => void,
+    removeRow: (index: number) => void,
+    emptyHint: string,
+  ) => {
+    if (rows.length === 0) {
+      return <Text style={styles.sectionEmpty}>{emptyHint}</Text>;
+    }
+    return (
+      <DraggableFlatList
+        scrollEnabled={false}
+        nestedScrollEnabled
+        data={rows}
+        keyExtractor={(item) => item.id}
+        onDragEnd={({ data }) => setRows(data)}
+        onDragBegin={() => Keyboard.dismiss()}
+        activationDistance={12}
+        renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<ExerciseRow>) => {
+          const index = getIndex() ?? 0;
+          return (
+            <ScaleDecorator>
+              <ExerciseEditorCard
+                index={index}
+                value={item.form}
+                onChange={(next) => updateForm(index, next)}
+                onRemove={() => removeRow(index)}
+                canRemove={rows.length >= 1}
+                onDrag={drag}
+                isDragging={isActive}
+              />
+            </ScaleDecorator>
+          );
+        }}
       />
-
-      <Text style={styles.label}>Workout notes (optional)</Text>
-      <TextInput
-        value={workoutDescription}
-        onChangeText={setWorkoutDescription}
-        placeholder="e.g. training for explosiveness"
-        placeholderTextColor={V.placeholder}
-        style={styles.descInput}
-        multiline
-        textAlignVertical="top"
-      />
-
-      <Text style={[styles.label, styles.exercisesLabel]}>Exercises</Text>
-    </View>
-  );
-
-  const listFooter = (
-    <View style={[styles.scrollContent, { paddingBottom: tabBarHeight + 24 }]}>
-      <Pressable
-        onPress={addExerciseSlot}
-        style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
-      >
-        <Text style={styles.addExerciseText}>+ Add another exercise</Text>
-      </Pressable>
-
-      <Pressable
-        onPressIn={() => Keyboard.dismiss()}
-        onPress={() => void saveWorkoutToLibrary()}
-        style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
-      >
-        <Text style={styles.saveLibraryBtnText}>
-          {editingId != null ? 'Save changes' : 'Save workout'}
-        </Text>
-      </Pressable>
-
-      <Pressable
-        onPressIn={() => Keyboard.dismiss()}
-        onPress={() => void addToToday()}
-        style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
-      >
-        <Text style={styles.addTodayBtnText}>Add to today</Text>
-      </Pressable>
-
-      {editingId != null ? (
-        <Pressable
-          onPress={() => void deleteWorkout()}
-          style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
-        >
-          <Text style={styles.deleteBtnText}>Delete workout</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      <DraggableFlatList
-        data={exerciseRows}
-        keyExtractor={(item) => item.id}
-        onDragEnd={onDragEnd}
-        onDragBegin={() => Keyboard.dismiss()}
-        activationDistance={12}
-        containerStyle={styles.list}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={listHeader}
-        ListFooterComponent={listFooter}
-        renderItem={renderItem}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: tabBarHeight + 24 },
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-      />
+      >
+        <Text style={styles.sub}>
+          Name the workout, then build each section. Long-press the three dashes on a card
+          to drag and reorder within that section. Cardio can use timed intervals (Timer
+          tab), distance intervals (no timer), or steady distance with pace.
+        </Text>
+
+        <Text style={styles.label}>Workout name</Text>
+        <TextInput
+          value={workoutName}
+          onChangeText={setWorkoutName}
+          placeholder="Push Day"
+          placeholderTextColor={V.placeholder}
+          style={styles.input}
+        />
+
+        <Text style={styles.label}>Workout notes (optional)</Text>
+        <TextInput
+          value={workoutDescription}
+          onChangeText={setWorkoutDescription}
+          placeholder="e.g. training for explosiveness"
+          placeholderTextColor={V.placeholder}
+          style={styles.descInput}
+          multiline
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.sectionTitle}>Warm up</Text>
+        {renderSectionList(
+          warmUpRows,
+          setWarmUpRows,
+          updateWarmUpForm,
+          removeWarmUp,
+          'No warm-up exercises. Tap below to add one.',
+        )}
+        <Pressable
+          onPress={() => setWarmUpRows((p) => [...p, newExerciseRow()])}
+          style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.addExerciseText}>+ Add exercise to warm up</Text>
+        </Pressable>
+
+        <Text style={styles.sectionTitle}>Workout</Text>
+        {renderSectionList(
+          workoutRows,
+          setWorkoutRows,
+          updateWorkoutForm,
+          removeWorkout,
+          'No main exercises yet. Tap below to add one.',
+        )}
+        <Pressable
+          onPress={() => setWorkoutRows((p) => [...p, newExerciseRow()])}
+          style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.addExerciseText}>+ Add exercise to workout</Text>
+        </Pressable>
+
+        <Text style={styles.sectionTitle}>Cool down</Text>
+        {renderSectionList(
+          coolDownRows,
+          setCoolDownRows,
+          updateCoolDownForm,
+          removeCoolDown,
+          'No cool-down exercises. Tap below to add one.',
+        )}
+        <Pressable
+          onPress={() => setCoolDownRows((p) => [...p, newExerciseRow()])}
+          style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.addExerciseText}>+ Add exercise to cool down</Text>
+        </Pressable>
+
+        <Pressable
+          onPressIn={() => Keyboard.dismiss()}
+          onPress={() => void saveWorkoutToLibrary()}
+          style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.saveLibraryBtnText}>
+            {editingId != null ? 'Save changes' : 'Save workout'}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPressIn={() => Keyboard.dismiss()}
+          onPress={() => void addToToday()}
+          style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
+        >
+          <Text style={styles.addTodayBtnText}>Add to today</Text>
+        </Pressable>
+
+        {editingId != null ? (
+          <Pressable
+            onPress={() => void deleteWorkout()}
+            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.deleteBtnText}>Delete workout</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -387,18 +463,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: V.bg,
   },
-  list: {
+  scroll: {
     flex: 1,
   },
   listContent: {
     flexGrow: 1,
     paddingTop: 8,
     paddingHorizontal: 20,
-  },
-  scrollContent: {},
-  exercisesLabel: {
-    marginTop: 4,
-    marginBottom: 4,
   },
   sub: {
     fontSize: 15,
@@ -413,6 +484,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: V.text,
+    marginTop: 12,
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  sectionEmpty: {
+    fontSize: 14,
+    color: V.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   input: {
     borderWidth: V.outlineWidth,
@@ -440,7 +525,7 @@ const styles = StyleSheet.create({
   },
   addExerciseBtn: {
     alignSelf: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 16,
     paddingVertical: 8,
   },
   addExerciseText: {
@@ -455,6 +540,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
+    marginTop: 8,
     marginBottom: 12,
   },
   saveLibraryBtnText: {

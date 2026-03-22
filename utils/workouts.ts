@@ -1,4 +1,5 @@
 import type {
+  DistancePhase,
   ExerciseDefinition,
   ExerciseFormInput,
   SavedWorkout,
@@ -29,10 +30,21 @@ export function emptyExerciseForm(): ExerciseFormInput {
     repsUntilFailure: false,
     timeBased: false,
     phases: [],
+    distancePhases: [],
     restMinutesStr: '',
     notesStr: '',
     optional: false,
+    kind: 'weighted',
+    cardioPattern: 'interval',
+    cardioIntervalMeasure: 'time',
+    distanceMilesStr: '',
+    paceStr: '',
   };
+}
+
+/** Total exercises across saved workout sections. */
+export function savedWorkoutExerciseCount(w: SavedWorkout): number {
+  return w.warmUp.length + w.workout.length + w.coolDown.length;
 }
 
 export function formsToDefinitions(
@@ -47,12 +59,69 @@ export function formsToDefinitions(
     if (!def) {
       return {
         ok: false,
-        message: `Check exercise ${i + 1}: name, sets/reps, or time blocks with labels and minutes.`,
+        message: `Check exercise ${i + 1}: name, sets/reps, time blocks, or cardio fields.`,
       };
     }
     exercises.push(def);
   }
   return { ok: true, exercises };
+}
+
+export function formsToDefinitionsAllowEmpty(
+  forms: ExerciseFormInput[],
+  sectionLabel: string,
+): { ok: true; exercises: ExerciseDefinition[] } | { ok: false; message: string } {
+  if (forms.length === 0) {
+    return { ok: true, exercises: [] };
+  }
+  const exercises: ExerciseDefinition[] = [];
+  for (let i = 0; i < forms.length; i++) {
+    const def = formToExerciseDefinition(forms[i]);
+    if (!def) {
+      return {
+        ok: false,
+        message: `Check ${sectionLabel}, exercise ${i + 1}: name, sets/reps, time blocks, or cardio fields.`,
+      };
+    }
+    exercises.push(def);
+  }
+  return { ok: true, exercises };
+}
+
+export function sectionedFormsToDefinitions(
+  warmUp: ExerciseFormInput[],
+  workout: ExerciseFormInput[],
+  coolDown: ExerciseFormInput[],
+):
+  | {
+      ok: true;
+      warmUp: ExerciseDefinition[];
+      workout: ExerciseDefinition[];
+      coolDown: ExerciseDefinition[];
+    }
+  | { ok: false; message: string } {
+  const a = formsToDefinitionsAllowEmpty(warmUp, 'Warm up');
+  if (!a.ok) {
+    return a;
+  }
+  const b = formsToDefinitionsAllowEmpty(workout, 'Workout');
+  if (!b.ok) {
+    return b;
+  }
+  const c = formsToDefinitionsAllowEmpty(coolDown, 'Cool down');
+  if (!c.ok) {
+    return c;
+  }
+  const total = a.exercises.length + b.exercises.length + c.exercises.length;
+  if (total === 0) {
+    return { ok: false, message: 'Add at least one exercise in any section.' };
+  }
+  return {
+    ok: true,
+    warmUp: a.exercises,
+    workout: b.exercises,
+    coolDown: c.exercises,
+  };
 }
 
 function withExerciseNotes(
@@ -66,13 +135,18 @@ function withExerciseNotes(
   return def;
 }
 
-export function formToExerciseDefinition(
+function parseRestSeconds(f: ExerciseFormInput): number | null {
+  const restMin = parseFloat(String(f.restMinutesStr).replace(',', '.'));
+  return Number.isFinite(restMin) && restMin > 0
+    ? Math.round(restMin * 60)
+    : null;
+}
+
+function weightedOrCircuitDefinition(
   f: ExerciseFormInput,
+  name: string,
+  kind: 'weighted' | 'circuit',
 ): ExerciseDefinition | null {
-  const name = f.name.trim();
-  if (!name) {
-    return null;
-  }
   const sets = Math.max(1, parseInt(f.setsStr, 10) || 1);
 
   if (!f.timeBased) {
@@ -86,6 +160,7 @@ export function formToExerciseDefinition(
           timeBased: false,
           workingPhases: [],
           restSeconds: null,
+          kind,
           ...(f.optional ? { optional: true } : {}),
         },
         f.notesStr,
@@ -95,15 +170,15 @@ export function formToExerciseDefinition(
     if (!Number.isFinite(r) || r < 1) {
       return null;
     }
-    const reps = r;
     return withExerciseNotes(
       {
         name,
         sets,
-        reps,
+        reps: r,
         timeBased: false,
         workingPhases: [],
         restSeconds: null,
+        kind,
         ...(f.optional ? { optional: true } : {}),
       },
       f.notesStr,
@@ -126,12 +201,6 @@ export function formToExerciseDefinition(
     return null;
   }
 
-  const restMin = parseFloat(String(f.restMinutesStr).replace(',', '.'));
-  const restSeconds =
-    Number.isFinite(restMin) && restMin > 0
-      ? Math.round(restMin * 60)
-      : null;
-
   return withExerciseNotes(
     {
       name,
@@ -139,7 +208,122 @@ export function formToExerciseDefinition(
       reps: null,
       timeBased: true,
       workingPhases: phases,
-      restSeconds,
+      restSeconds: parseRestSeconds(f),
+      kind,
+      ...(f.optional ? { optional: true } : {}),
+    },
+    f.notesStr,
+  );
+}
+
+export function formToExerciseDefinition(
+  f: ExerciseFormInput,
+): ExerciseDefinition | null {
+  const name = f.name.trim();
+  if (!name) {
+    return null;
+  }
+
+  if (f.kind === 'weighted') {
+    return weightedOrCircuitDefinition(f, name, 'weighted');
+  }
+
+  if (f.kind === 'circuit') {
+    return weightedOrCircuitDefinition(f, name, 'circuit');
+  }
+
+  if (f.kind !== 'cardio') {
+    return null;
+  }
+
+  if (f.cardioPattern === 'steady_distance') {
+    const mi = parseFloat(String(f.distanceMilesStr).replace(',', '.'));
+    if (!Number.isFinite(mi) || mi <= 0) {
+      return null;
+    }
+    const pace = f.paceStr.trim();
+    return withExerciseNotes(
+      {
+        name,
+        sets: 1,
+        reps: null,
+        timeBased: false,
+        workingPhases: [],
+        restSeconds: null,
+        kind: 'cardio',
+        cardioPattern: 'steady_distance',
+        distanceMiles: mi,
+        ...(pace.length > 0 ? { paceDescription: pace } : {}),
+        ...(f.optional ? { optional: true } : {}),
+      },
+      f.notesStr,
+    );
+  }
+
+  if (f.cardioPattern !== 'interval') {
+    return null;
+  }
+
+  const sets = Math.max(1, parseInt(f.setsStr, 10) || 1);
+
+  if (f.cardioIntervalMeasure === 'time') {
+    const phases: TimePhase[] = [];
+    for (const p of f.phases) {
+      const label = p.label.trim();
+      const min = parseFloat(String(p.minutesStr).replace(',', '.'));
+      if (!label || !Number.isFinite(min) || min <= 0) {
+        continue;
+      }
+      phases.push({
+        label,
+        durationSeconds: Math.round(min * 60),
+      });
+    }
+    if (phases.length === 0) {
+      return null;
+    }
+    return withExerciseNotes(
+      {
+        name,
+        sets,
+        reps: null,
+        timeBased: true,
+        workingPhases: phases,
+        restSeconds: parseRestSeconds(f),
+        kind: 'cardio',
+        cardioPattern: 'interval',
+        cardioIntervalMeasure: 'time',
+        ...(f.optional ? { optional: true } : {}),
+      },
+      f.notesStr,
+    );
+  }
+
+  const dPhases: DistancePhase[] = [];
+  for (const p of f.distancePhases) {
+    const label = p.label.trim();
+    const miles = parseFloat(String(p.milesStr).replace(',', '.'));
+    if (!label || !Number.isFinite(miles) || miles <= 0) {
+      continue;
+    }
+    dPhases.push({ label, miles });
+  }
+  if (dPhases.length === 0) {
+    return null;
+  }
+
+  return withExerciseNotes(
+    {
+      name,
+      sets,
+      reps: null,
+      timeBased: false,
+      workingPhases: [],
+      restSeconds: parseRestSeconds(f),
+      kind: 'cardio',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'distance',
+      distancePhases: dPhases,
       ...(f.optional ? { optional: true } : {}),
     },
     f.notesStr,
@@ -160,6 +344,109 @@ export function secondsToMinutesInputStr(seconds: number): string {
 export function exerciseDefinitionToFormInput(
   ex: ExerciseDefinition,
 ): ExerciseFormInput {
+  const baseOptional = ex.optional === true;
+  const kind = ex.kind ?? 'weighted';
+
+  if (kind === 'cardio' && ex.cardioPattern === 'steady_distance') {
+    return {
+      name: ex.name,
+      setsStr: '1',
+      repsStr: '',
+      repsUntilFailure: false,
+      timeBased: false,
+      phases: [],
+      distancePhases: [],
+      restMinutesStr: '',
+      notesStr: ex.notes ?? '',
+      optional: baseOptional,
+      kind: 'cardio',
+      cardioPattern: 'steady_distance',
+      cardioIntervalMeasure: 'time',
+      distanceMilesStr:
+        ex.distanceMiles != null && Number.isFinite(ex.distanceMiles)
+          ? String(ex.distanceMiles)
+          : '',
+      paceStr: ex.paceDescription ?? '',
+    };
+  }
+
+  if (
+    kind === 'cardio' &&
+    ex.cardioPattern === 'interval' &&
+    ex.cardioIntervalMeasure === 'distance' &&
+    ex.distancePhases &&
+    ex.distancePhases.length > 0
+  ) {
+    let distancePhases = ex.distancePhases.map((p) => ({
+      label: p.label,
+      milesStr: String(p.miles),
+    }));
+    if (distancePhases.length === 0) {
+      distancePhases = [{ label: '', milesStr: '' }];
+    }
+    return {
+      name: ex.name,
+      setsStr: String(Math.max(1, ex.sets)),
+      repsStr: '',
+      repsUntilFailure: false,
+      timeBased: false,
+      phases: [],
+      distancePhases,
+      restMinutesStr:
+        ex.restSeconds != null && ex.restSeconds > 0
+          ? secondsToMinutesInputStr(ex.restSeconds)
+          : '',
+      notesStr: ex.notes ?? '',
+      optional: baseOptional,
+      kind: 'cardio',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'distance',
+      distanceMilesStr: '',
+      paceStr: '',
+    };
+  }
+
+  if (
+    kind === 'cardio' &&
+    ex.cardioPattern === 'interval' &&
+    ex.cardioIntervalMeasure === 'time' &&
+    ex.timeBased
+  ) {
+    let phases = ex.workingPhases.map((p) => ({
+      label: p.label,
+      minutesStr: secondsToMinutesInputStr(p.durationSeconds),
+    }));
+    if (phases.length === 0) {
+      phases = [{ label: '', minutesStr: '' }];
+    }
+    return {
+      name: ex.name,
+      setsStr: String(Math.max(1, ex.sets)),
+      repsStr: '',
+      repsUntilFailure: false,
+      timeBased: true,
+      phases,
+      distancePhases: [],
+      restMinutesStr:
+        ex.restSeconds != null && ex.restSeconds > 0
+          ? secondsToMinutesInputStr(ex.restSeconds)
+          : '',
+      notesStr: ex.notes ?? '',
+      optional: baseOptional,
+      kind: 'cardio',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      distanceMilesStr: '',
+      paceStr: '',
+    };
+  }
+
+  if (kind === 'circuit') {
+    const circuitEx: ExerciseDefinition = { ...ex, kind: 'weighted' };
+    const inner = exerciseDefinitionToFormInput(circuitEx);
+    return { ...inner, kind: 'circuit' };
+  }
+
   if (!ex.timeBased) {
     const toFailure = ex.repsToFailure === true;
     return {
@@ -169,11 +456,18 @@ export function exerciseDefinitionToFormInput(
       repsUntilFailure: toFailure,
       timeBased: false,
       phases: [],
+      distancePhases: [],
       restMinutesStr: '',
       notesStr: ex.notes ?? '',
-      optional: ex.optional === true,
+      optional: baseOptional,
+      kind: 'weighted',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      distanceMilesStr: '',
+      paceStr: '',
     };
   }
+
   let phases = ex.workingPhases.map((p) => ({
     label: p.label,
     minutesStr: secondsToMinutesInputStr(p.durationSeconds),
@@ -188,12 +482,18 @@ export function exerciseDefinitionToFormInput(
     repsUntilFailure: false,
     timeBased: true,
     phases,
+    distancePhases: [],
     restMinutesStr:
       ex.restSeconds != null && ex.restSeconds > 0
         ? secondsToMinutesInputStr(ex.restSeconds)
         : '',
     notesStr: ex.notes ?? '',
-    optional: ex.optional === true,
+    optional: baseOptional,
+    kind: 'weighted',
+    cardioPattern: 'interval',
+    cardioIntervalMeasure: 'time',
+    distanceMilesStr: '',
+    paceStr: '',
   };
 }
 
@@ -210,8 +510,10 @@ export function savedWorkoutLabel(w: SavedWorkout): string {
   if (t) {
     return t;
   }
-  if (w.exercises[0]?.name) {
-    return w.exercises[0].name;
+  const first =
+    w.warmUp[0] ?? w.workout[0] ?? w.coolDown[0] ?? w.exercises?.[0];
+  if (first?.name) {
+    return first.name;
   }
   return 'Untitled workout';
 }
@@ -221,11 +523,24 @@ export function savedWorkoutToTasks(w: SavedWorkout): Task[] {
   const tasks: Task[] = [];
   const t = w.title.trim();
   if (t) {
-    tasks.push({ name: `— ${t} —`, completed: false });
+    tasks.push({
+      name: `— ${t} —`,
+      completed: false,
+      isScheduledWorkoutRoot: true,
+    });
   }
-  for (const ex of w.exercises) {
-    tasks.push(exerciseToTask(ex));
-  }
+  const pushSection = (label: string, exercises: ExerciseDefinition[]) => {
+    if (exercises.length === 0) {
+      return;
+    }
+    tasks.push({ name: `— ${label} —`, completed: false });
+    for (const ex of exercises) {
+      tasks.push(exerciseToTask(ex));
+    }
+  };
+  pushSection('Warm up', w.warmUp);
+  pushSection('Workout', w.workout);
+  pushSection('Cool down', w.coolDown);
   return tasks;
 }
 
@@ -261,8 +576,37 @@ export function workoutSectionDisplayTitle(name: string): string {
 export function getScheduledWorkoutSegments(
   tasks: Task[],
 ): { start: number; end: number }[] {
+  const usesRoot = tasks.some((t) => t.isScheduledWorkoutRoot === true);
   const segments: { start: number; end: number }[] = [];
   let i = 0;
+  if (usesRoot) {
+    while (i < tasks.length) {
+      if (tasks[i].isScheduledWorkoutRoot === true) {
+        const start = i;
+        i += 1;
+        while (i < tasks.length && tasks[i].isScheduledWorkoutRoot !== true) {
+          i += 1;
+        }
+        segments.push({ start, end: i - 1 });
+      } else {
+        const start = i;
+        while (
+          i < tasks.length &&
+          tasks[i].isScheduledWorkoutRoot !== true &&
+          !isWorkoutSectionHeader(tasks[i].name)
+        ) {
+          i += 1;
+        }
+        if (i > start) {
+          segments.push({ start, end: i - 1 });
+        } else {
+          i += 1;
+        }
+      }
+    }
+    return segments;
+  }
+
   while (i < tasks.length) {
     if (isWorkoutSectionHeader(tasks[i].name)) {
       const start = i;
@@ -293,6 +637,57 @@ export function removeTaskIndexRange(
 /** Human-readable lines for lists (Home / Week). */
 export function exerciseSummaryLines(ex: ExerciseDefinition): string[] {
   const lines: string[] = [];
+  const kind = ex.kind ?? 'weighted';
+
+  if (kind === 'cardio' && ex.cardioPattern === 'steady_distance') {
+    const mi = ex.distanceMiles ?? 0;
+    lines.push(`${mi} mi`);
+    if (ex.paceDescription) {
+      lines.push(`Pace: ${ex.paceDescription}`);
+    }
+    lines.push('Cardio · distance');
+    return lines;
+  }
+
+  if (
+    kind === 'cardio' &&
+    ex.cardioPattern === 'interval' &&
+    ex.cardioIntervalMeasure === 'distance' &&
+    ex.distancePhases &&
+    ex.distancePhases.length > 0
+  ) {
+    const setStr = `${ex.sets} set${ex.sets === 1 ? '' : 's'}`;
+    lines.push(`${setStr} · distance intervals`);
+    for (const p of ex.distancePhases) {
+      lines.push(`${p.label}: ${p.miles} mi`);
+    }
+    if (ex.restSeconds != null && ex.restSeconds > 0) {
+      lines.push(`Rest between sets: ${formatDuration(ex.restSeconds)}`);
+    }
+    return lines;
+  }
+
+  if (
+    kind === 'cardio' &&
+    ex.cardioPattern === 'interval' &&
+    ex.cardioIntervalMeasure === 'time' &&
+    ex.timeBased
+  ) {
+    const setStr = `${ex.sets} set${ex.sets === 1 ? '' : 's'}`;
+    lines.push(`${setStr} · cardio · time intervals`);
+    for (const p of ex.workingPhases) {
+      lines.push(`${p.label}: ${formatDuration(p.durationSeconds)}`);
+    }
+    if (ex.restSeconds != null && ex.restSeconds > 0) {
+      lines.push(`Rest between sets: ${formatDuration(ex.restSeconds)}`);
+    }
+    return lines;
+  }
+
+  if (kind === 'circuit') {
+    lines.push('Circuit');
+  }
+
   const setStr = `${ex.sets} set${ex.sets === 1 ? '' : 's'}`;
   if (!ex.timeBased) {
     if (ex.repsToFailure) {
@@ -334,11 +729,32 @@ function isTimePhase(x: unknown): x is TimePhase {
   );
 }
 
+function isDistancePhase(x: unknown): x is DistancePhase {
+  return (
+    x != null &&
+    typeof x === 'object' &&
+    typeof (x as DistancePhase).label === 'string' &&
+    typeof (x as DistancePhase).miles === 'number' &&
+    Number.isFinite((x as DistancePhase).miles)
+  );
+}
+
+function isExerciseKind(
+  x: unknown,
+): x is 'weighted' | 'cardio' | 'circuit' {
+  return x === 'weighted' || x === 'cardio' || x === 'circuit';
+}
+
 function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
   if (x == null || typeof x !== 'object') {
     return false;
   }
   const e = x as ExerciseDefinition;
+  const phasesOk =
+    Array.isArray(e.workingPhases) && e.workingPhases.every(isTimePhase);
+  const distOk =
+    e.distancePhases === undefined ||
+    (Array.isArray(e.distancePhases) && e.distancePhases.every(isDistancePhase));
   return (
     typeof e.name === 'string' &&
     typeof e.sets === 'number' &&
@@ -346,11 +762,35 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
     (e.repsToFailure === undefined || typeof e.repsToFailure === 'boolean') &&
     (e.optional === undefined || typeof e.optional === 'boolean') &&
     typeof e.timeBased === 'boolean' &&
-    Array.isArray(e.workingPhases) &&
-    e.workingPhases.every(isTimePhase) &&
+    phasesOk &&
+    distOk &&
     (e.restSeconds === null || typeof e.restSeconds === 'number') &&
-    (e.notes === undefined || typeof e.notes === 'string')
+    (e.notes === undefined || typeof e.notes === 'string') &&
+    (e.kind === undefined || isExerciseKind(e.kind)) &&
+    (e.cardioPattern === undefined ||
+      e.cardioPattern === 'interval' ||
+      e.cardioPattern === 'steady_distance') &&
+    (e.cardioIntervalMeasure === undefined ||
+      e.cardioIntervalMeasure === 'time' ||
+      e.cardioIntervalMeasure === 'distance') &&
+    (e.distanceMiles === undefined || typeof e.distanceMiles === 'number') &&
+    (e.paceDescription === undefined || typeof e.paceDescription === 'string')
   );
+}
+
+function parseExerciseDefinitionList(arr: unknown): ExerciseDefinition[] {
+  if (!Array.isArray(arr)) {
+    return [];
+  }
+  const exercises: ExerciseDefinition[] = [];
+  for (const item of arr) {
+    if (typeof item === 'string') {
+      exercises.push(legacyStringToExercise(item));
+    } else if (isExerciseDefinition(item)) {
+      exercises.push(item);
+    }
+  }
+  return exercises;
 }
 
 /** Normalize a saved workout from storage (supports legacy string[] exercises). */
@@ -363,23 +803,23 @@ export function normalizeSavedWorkout(raw: unknown): SavedWorkout | null {
     return null;
   }
   const title = typeof w.title === 'string' ? w.title : '';
-  if (!Array.isArray(w.exercises)) {
+
+  const warmUp = parseExerciseDefinitionList(w.warmUp);
+  let workout: ExerciseDefinition[];
+  if (Array.isArray(w.workout)) {
+    workout = parseExerciseDefinitionList(w.workout);
+  } else if (Array.isArray(w.exercises)) {
+    workout = parseExerciseDefinitionList(w.exercises);
+  } else {
     return null;
   }
-  const exercises: ExerciseDefinition[] = [];
-  for (const item of w.exercises) {
-    if (typeof item === 'string') {
-      exercises.push(legacyStringToExercise(item));
-    } else if (isExerciseDefinition(item)) {
-      exercises.push(item);
-    }
-  }
+  const coolDown = parseExerciseDefinitionList(w.coolDown);
+
   const descRaw = w.description;
   const description =
     typeof descRaw === 'string' && descRaw.trim().length > 0
       ? descRaw.trim()
       : undefined;
-  return description != null
-    ? { id: w.id, title, exercises, description }
-    : { id: w.id, title, exercises };
+  const base = { id: w.id, title, warmUp, workout, coolDown };
+  return description != null ? { ...base, description } : base;
 }

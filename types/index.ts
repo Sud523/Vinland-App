@@ -4,6 +4,20 @@ export type TimePhase = {
   durationSeconds: number;
 };
 
+/** One interval during distance-based cardio (miles per block). */
+export type DistancePhase = {
+  label: string;
+  miles: number;
+};
+
+export type ExerciseKind = 'weighted' | 'cardio' | 'circuit';
+
+/** Cardio: repeating intervals vs single distance + pace. */
+export type CardioPattern = 'interval' | 'steady_distance';
+
+/** Under cardio interval: timed blocks vs distance blocks (no timer app support). */
+export type CardioIntervalMeasure = 'time' | 'distance';
+
 /** Full exercise spec for saved workouts and scheduled tasks. */
 export type ExerciseDefinition = {
   name: string;
@@ -20,6 +34,18 @@ export type ExerciseDefinition = {
   notes?: string;
   /** When true, completions don’t count toward daily progress or stats. */
   optional?: boolean;
+  /** Defaults to weighted when omitted (legacy). */
+  kind?: ExerciseKind;
+  /** Cardio only. */
+  cardioPattern?: CardioPattern;
+  /** Cardio interval only. */
+  cardioIntervalMeasure?: CardioIntervalMeasure;
+  /** Distance-based interval rounds (miles per block). */
+  distancePhases?: DistancePhase[];
+  /** Steady cardio: total distance (mi). */
+  distanceMiles?: number;
+  /** Steady cardio: pace (free text, e.g. 8:30 / mi). */
+  paceDescription?: string;
 };
 
 export type Task = {
@@ -28,6 +54,11 @@ export type Task = {
   duration?: number;
   /** Present when task was created from a structured exercise. */
   exercise?: ExerciseDefinition;
+  /**
+   * True only for the main `— Workout name —` row when scheduling from the library.
+   * Sub-section rows (`— Warm up —`, etc.) omit this so Week swipe-delete keeps one block.
+   */
+  isScheduledWorkoutRoot?: boolean;
 };
 
 export type Day = {
@@ -49,10 +80,19 @@ export type ExerciseFormInput = {
   repsUntilFailure: boolean;
   timeBased: boolean;
   phases: { label: string; minutesStr: string }[];
+  /** Distance interval blocks (miles). */
+  distancePhases: { label: string; milesStr: string }[];
   restMinutesStr: string;
   notesStr: string;
   /** Exercise is optional for progress and stats. */
   optional: boolean;
+  kind: ExerciseKind;
+  cardioPattern: CardioPattern;
+  cardioIntervalMeasure: CardioIntervalMeasure;
+  /** Steady cardio distance (miles). */
+  distanceMilesStr: string;
+  /** Steady cardio pace description. */
+  paceStr: string;
 };
 
 /** Reusable template saved from the Workouts tab. */
@@ -61,5 +101,9 @@ export type SavedWorkout = {
   title: string;
   /** Optional workout-level note (e.g. training focus). */
   description?: string;
-  exercises: ExerciseDefinition[];
+  warmUp: ExerciseDefinition[];
+  workout: ExerciseDefinition[];
+  coolDown: ExerciseDefinition[];
+  /** @deprecated Loaded from storage only; normalized into section arrays. */
+  exercises?: ExerciseDefinition[];
 };

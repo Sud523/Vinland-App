@@ -10,7 +10,7 @@ import { V } from '../constants/vinlandTheme';
 import type { WorkoutsStackParamList } from '../navigation/types';
 import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
-import { exerciseSummaryLines, savedWorkoutLabel } from '../utils/workouts';
+import { savedWorkoutExerciseCount, savedWorkoutLabel } from '../utils/workouts';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsList'>;
 
@@ -71,8 +71,8 @@ export default function WorkoutsListScreen({ navigation }: Props) {
                   </Text>
                 ) : null}
                 <Text style={styles.savedMeta}>
-                  {w.exercises.length} exercise
-                  {w.exercises.length === 1 ? '' : 's'}
+                  {savedWorkoutExerciseCount(w)} exercise
+                  {savedWorkoutExerciseCount(w) === 1 ? '' : 's'}
                 </Text>
               </View>
               <Pressable
