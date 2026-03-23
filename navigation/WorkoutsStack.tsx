@@ -1,4 +1,4 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Platform, StyleSheet } from 'react-native';
 
 import { OutlinedNavBackButton } from '../components/OutlinedNavBackButton';
@@ -7,13 +7,13 @@ import { V } from '../constants/vinlandTheme';
 import {
   headerTitleBarContainerStyle,
   headerTitleBarStyle,
-  smoothStackTransition,
+  rootStackCardTransition,
 } from './headerNav';
 import WorkoutFormScreen from '../screens/WorkoutFormScreen';
 import WorkoutsListScreen from '../screens/WorkoutsListScreen';
 import type { WorkoutsStackParamList } from './types';
 
-const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
+const Stack = createStackNavigator<WorkoutsStackParamList>();
 
 const layoutStyles = StyleSheet.create({
   headerLeftIos: {
@@ -34,12 +34,12 @@ const headerChrome = {
     backgroundColor: V.bg,
     borderBottomWidth: V.outlineWidth,
     borderBottomColor: V.tabBarBorder,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   headerTitleStyle: headerTitleBarStyle,
   headerTitleContainerStyle: headerTitleBarContainerStyle,
   headerTintColor: V.text,
-  headerShadowVisible: false,
-  contentStyle: { backgroundColor: V.bg },
   ...(Platform.OS === 'ios'
     ? {
         headerLeftContainerStyle: layoutStyles.headerLeftIos,
@@ -52,30 +52,15 @@ export default function WorkoutsStack() {
   return (
     <Stack.Navigator
       screenOptions={{
+        ...rootStackCardTransition,
         ...headerChrome,
-        presentation: 'card',
-        ...smoothStackTransition,
-        ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
       }}>
       <Stack.Screen
         name="WorkoutsList"
         component={WorkoutsListScreen}
         options={{
           title: 'Workouts',
-          ...Platform.select({
-            ios: {
-              unstable_headerRightItems: () => [
-                {
-                  type: 'custom' as const,
-                  hidesSharedBackground: true,
-                  element: <SettingsHeaderButton />,
-                },
-              ],
-            },
-            default: {
-              headerRight: () => <SettingsHeaderButton />,
-            },
-          }),
+          headerRight: () => <SettingsHeaderButton />,
         }}
       />
       <Stack.Screen
@@ -85,35 +70,14 @@ export default function WorkoutsStack() {
           title: route.params?.editId ? 'Edit workout' : 'New workout',
           headerBackVisible: false,
           headerTitleAlign: 'left',
-          presentation: 'card',
-          ...smoothStackTransition,
-          ...Platform.select({
-            ios: {
-              fullScreenGestureEnabled: true,
-              unstable_headerLeftItems: () => [
-                {
-                  type: 'custom' as const,
-                  hidesSharedBackground: true,
-                  element: (
-                    <OutlinedNavBackButton
-                      compact
-                      onPress={() => navigation.goBack()}
-                      label="Workouts"
-                    />
-                  ),
-                },
-              ],
-            },
-            default: {
-              headerLeft: () => (
-                <OutlinedNavBackButton
-                  compact
-                  onPress={() => navigation.goBack()}
-                  label="Workouts"
-                />
-              ),
-            },
-          }),
+          ...rootStackCardTransition,
+          headerLeft: () => (
+            <OutlinedNavBackButton
+              compact
+              onPress={() => navigation.goBack()}
+              label="Workouts"
+            />
+          ),
           headerLeftContainerStyle: {
             paddingLeft: Platform.OS === 'ios' ? 8 : 6,
             paddingRight: 6,

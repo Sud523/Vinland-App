@@ -1,13 +1,16 @@
-import { Platform } from 'react-native';
+import { TransitionPresets } from '@react-navigation/stack';
 
 import { V } from '../constants/vinlandTheme';
 
-/** iOS: longer, eased push/pop via simple_push (duration is honored). Android: explicit horizontal slide. */
-export const smoothStackTransition = Platform.select({
-  ios: { animation: 'simple_push' as const, animationDuration: 420 },
-  android: { animation: 'slide_from_right' as const },
-  default: { animation: 'default' as const },
-});
+/**
+ * JS stack: horizontal slide + iOS-style spring. Used for Main → Settings and Workouts list → form
+ * so transitions run on web (native-stack web uses instant show/hide).
+ */
+export const rootStackCardTransition = {
+  ...TransitionPresets.SlideFromRightIOS,
+  cardStyle: { backgroundColor: V.bg },
+  cardOverlayEnabled: true,
+};
 
 /** Matches compact back control and standard iOS nav title metrics (17pt semibold). */
 export const headerTitleBarStyle = {
