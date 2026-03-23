@@ -12,9 +12,11 @@ import { V, switchThumb, switchTrack } from '../constants/vinlandTheme';
 import type {
   CardioIntervalMeasure,
   CardioPattern,
+  CircuitStationFormInput,
   ExerciseFormInput,
   ExerciseKind,
 } from '../types';
+import { emptyCircuitStationForm } from '../utils/workouts';
 
 type Props = {
   index: number;
@@ -65,15 +67,16 @@ export function ExerciseEditorCard({
 
   const setKind = (kind: ExerciseKind) => {
     if (kind === 'weighted') {
-      onChange({
-        ...value,
-        kind: 'weighted',
-        cardioPattern: 'interval',
-        cardioIntervalMeasure: 'time',
-        distanceMilesStr: '',
-        paceStr: '',
-        distancePhases: [],
-      });
+    onChange({
+      ...value,
+      kind: 'weighted',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      distanceMilesStr: '',
+      paceStr: '',
+      distancePhases: [],
+      circuitStations: [],
+    });
       return;
     }
     if (kind === 'circuit') {
@@ -86,9 +89,15 @@ export function ExerciseEditorCard({
         distancePhases: [],
         distanceMilesStr: '',
         paceStr: '',
-        repsStr: value.repsStr || '10',
+        repsStr: '',
+        repsUntilFailure: false,
         cardioPattern: 'interval',
         cardioIntervalMeasure: 'time',
+        setsStr: value.setsStr || '3',
+        circuitStations:
+          value.circuitStations.length > 0
+            ? value.circuitStations
+            : [emptyCircuitStationForm()],
       });
       return;
     }
@@ -107,6 +116,7 @@ export function ExerciseEditorCard({
       distancePhases: [],
       distanceMilesStr: '',
       paceStr: '',
+      circuitStations: [],
     });
   };
 
@@ -231,14 +241,94 @@ export function ExerciseEditorCard({
     });
   };
 
-  const showWeightedTimeSwitch =
-    value.kind === 'weighted' || value.kind === 'circuit';
+  const updateCircuitStation = (
+    stationIndex: number,
+    patch: Partial<CircuitStationFormInput>,
+  ) => {
+    const circuitStations = value.circuitStations.map((s, i) =>
+      i === stationIndex ? { ...s, ...patch } : s,
+    );
+    update({ circuitStations });
+  };
 
-  const showRepFields =
-    (value.kind === 'weighted' || value.kind === 'circuit') && !value.timeBased;
+  const setStationTimeBased = (stationIndex: number, timeBased: boolean) => {
+    const cur = value.circuitStations[stationIndex];
+    if (!cur) {
+      return;
+    }
+    if (timeBased) {
+      updateCircuitStation(stationIndex, {
+        timeBased: true,
+        phases:
+          cur.phases.length > 0 ? cur.phases : [{ label: '', minutesStr: '' }],
+        repsUntilFailure: false,
+        repsStr: '',
+      });
+    } else {
+      updateCircuitStation(stationIndex, {
+        timeBased: false,
+        phases: [],
+        repsStr: cur.repsUntilFailure ? '' : cur.repsStr || '10',
+        repsUntilFailure: cur.repsUntilFailure,
+      });
+    }
+  };
 
-  const showTimePhasesWeighted =
-    (value.kind === 'weighted' || value.kind === 'circuit') && value.timeBased;
+  const updateStationPhase = (
+    stationIndex: number,
+    phaseIndex: number,
+    patch: Partial<{ label: string; minutesStr: string }>,
+  ) => {
+    const circuitStations = value.circuitStations.map((s, i) => {
+      if (i !== stationIndex) {
+        return s;
+      }
+      const phases = s.phases.map((p, j) =>
+        j === phaseIndex ? { ...p, ...patch } : p,
+      );
+      return { ...s, phases };
+    });
+    update({ circuitStations });
+  };
+
+  const addStationPhase = (stationIndex: number) => {
+    const circuitStations = value.circuitStations.map((s, i) =>
+      i === stationIndex
+        ? { ...s, phases: [...s.phases, { label: '', minutesStr: '' }] }
+        : s,
+    );
+    update({ circuitStations });
+  };
+
+  const removeStationPhase = (stationIndex: number, phaseIndex: number) => {
+    const circuitStations = value.circuitStations.map((s, i) => {
+      if (i !== stationIndex) {
+        return s;
+      }
+      return { ...s, phases: s.phases.filter((_, j) => j !== phaseIndex) };
+    });
+    update({ circuitStations });
+  };
+
+  const addCircuitStation = () => {
+    update({
+      circuitStations: [...value.circuitStations, emptyCircuitStationForm()],
+    });
+  };
+
+  const removeCircuitStation = (stationIndex: number) => {
+    update({
+      circuitStations: value.circuitStations.filter((_, i) => i !== stationIndex),
+    });
+  };
+
+  const showWeightedTimeSwitch = value.kind === 'weighted';
+
+  const showRepFields = value.kind === 'weighted' && !value.timeBased;
+
+  const showTimePhasesWeighted = value.kind === 'weighted' && value.timeBased;
+
+  const showCircuitBuilder = value.kind === 'circuit';
 
   const showCardioSteady =
     value.kind === 'cardio' && value.cardioPattern === 'steady_distance';
@@ -255,7 +345,11 @@ export function ExerciseEditorCard({
 
   const showSets =
     !showCardioSteady &&
-    (showCardioIntervalTime || showCardioIntervalDistance || showRepFields || showTimePhasesWeighted);
+    !showCircuitBuilder &&
+    (showCardioIntervalTime ||
+      showCardioIntervalDistance ||
+      showRepFields ||
+      showTimePhasesWeighted);
 
   return (
     <View style={[styles.card, isDragging && styles.cardDragging]}>
@@ -356,11 +450,157 @@ export function ExerciseEditorCard({
         </>
       ) : null}
 
-      {value.kind === 'circuit' ? (
-        <Text style={styles.circuitHint}>
-          Circuit sequencing is coming next. For now use sets, reps, or timed blocks like a
-          regular strength move.
-        </Text>
+      {showCircuitBuilder ? (
+        <>
+          <Text style={styles.sectionHint}>
+            Name the whole circuit above, then add each move in order. Complete all stations
+            for one round; repeat for the number of rounds.
+          </Text>
+          <Text style={styles.fieldLabel}>Rounds</Text>
+          <TextInput
+            value={value.setsStr}
+            onChangeText={(setsStr) => update({ setsStr })}
+            placeholder="3"
+            placeholderTextColor={V.placeholder}
+            keyboardType="number-pad"
+            style={styles.input}
+          />
+          {value.circuitStations.map((station, si) => (
+            <View key={si} style={styles.circuitStationCard}>
+              <View style={styles.phaseHeader}>
+                <Text style={styles.phaseLabel}>Station {si + 1}</Text>
+                {value.circuitStations.length > 1 ? (
+                  <Pressable onPress={() => removeCircuitStation(si)} hitSlop={8}>
+                    <Text style={styles.removePhase}>Remove</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <Text style={styles.fieldLabel}>Exercise name</Text>
+              <TextInput
+                value={station.name}
+                onChangeText={(name) => updateCircuitStation(si, { name })}
+                placeholder="e.g. Kettlebell swing"
+                placeholderTextColor={V.placeholder}
+                style={styles.input}
+              />
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Time-based (no reps)</Text>
+                <Switch
+                  value={station.timeBased}
+                  onValueChange={(v) => setStationTimeBased(si, v)}
+                  trackColor={switchTrack}
+                  thumbColor={station.timeBased ? switchThumb.on : switchThumb.off}
+                />
+              </View>
+              {!station.timeBased ? (
+                <>
+                  <Text style={styles.fieldLabel}>Reps</Text>
+                  <View style={styles.repsModeRow}>
+                    <Pressable
+                      onPress={() => {
+                        if (station.repsUntilFailure) {
+                          updateCircuitStation(si, {
+                            repsUntilFailure: false,
+                            repsStr: station.repsStr || '10',
+                          });
+                        } else {
+                          updateCircuitStation(si, {
+                            repsUntilFailure: true,
+                            repsStr: '',
+                          });
+                        }
+                      }}
+                      style={({ pressed }) => [
+                        styles.failureChip,
+                        station.repsUntilFailure && styles.failureChipOn,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.failureChipText,
+                          station.repsUntilFailure && styles.failureChipTextOn,
+                        ]}
+                      >
+                        Failure
+                      </Text>
+                    </Pressable>
+                    <Text style={styles.repsModeHint}>
+                      {station.repsUntilFailure
+                        ? 'On: no rep target'
+                        : 'Off: fixed reps below'}
+                    </Text>
+                  </View>
+                  {station.repsUntilFailure ? (
+                    <Text style={styles.failureDescription}>
+                      This station is done to failure for the rep count.
+                    </Text>
+                  ) : (
+                    <TextInput
+                      value={station.repsStr}
+                      onChangeText={(repsStr) => updateCircuitStation(si, { repsStr })}
+                      placeholder="10"
+                      placeholderTextColor={V.placeholder}
+                      keyboardType="number-pad"
+                      style={styles.input}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.sectionHint}>
+                    Working blocks for this station (label + minutes).
+                  </Text>
+                  {station.phases.map((phase, pi) => (
+                    <View key={pi} style={styles.phaseBlock}>
+                      <View style={styles.phaseHeader}>
+                        <Text style={styles.phaseLabel}>Block {pi + 1}</Text>
+                        {station.phases.length > 1 ? (
+                          <Pressable
+                            onPress={() => removeStationPhase(si, pi)}
+                            hitSlop={8}
+                          >
+                            <Text style={styles.removePhase}>Remove</Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                      <TextInput
+                        value={phase.label}
+                        onChangeText={(label) => updateStationPhase(si, pi, { label })}
+                        placeholder="Label"
+                        placeholderTextColor={V.placeholder}
+                        style={styles.input}
+                      />
+                      <Text style={styles.fieldLabel}>Minutes</Text>
+                      <TextInput
+                        value={phase.minutesStr}
+                        onChangeText={(minutesStr) =>
+                          updateStationPhase(si, pi, { minutesStr })
+                        }
+                        placeholder="4"
+                        placeholderTextColor={V.placeholder}
+                        keyboardType="decimal-pad"
+                        style={styles.input}
+                      />
+                    </View>
+                  ))}
+                  <Pressable
+                    onPress={() => addStationPhase(si)}
+                    style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.secondaryBtnText}>+ Add time block</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          ))}
+          <Pressable
+            onPress={addCircuitStation}
+            style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.secondaryBtnText}>+ Add station to circuit</Text>
+          </Pressable>
+        </>
       ) : null}
 
       {showCardioSteady ? (
@@ -702,11 +942,13 @@ const styles = StyleSheet.create({
   chipTextOn: {
     color: V.accent,
   },
-  circuitHint: {
-    fontSize: 14,
-    color: V.textSecondary,
-    lineHeight: 20,
-    marginBottom: 12,
+  circuitStationCard: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderMuted,
+    borderRadius: V.boxRadius,
+    padding: 14,
+    marginBottom: 14,
+    backgroundColor: V.bgInput,
   },
   input: {
     borderWidth: V.outlineWidth,

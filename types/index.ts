@@ -18,6 +18,15 @@ export type CardioPattern = 'interval' | 'steady_distance';
 /** Under cardio interval: timed blocks vs distance blocks (no timer app support). */
 export type CardioIntervalMeasure = 'time' | 'distance';
 
+/** One move inside a circuit (reps or timed blocks). */
+export type CircuitStation = {
+  name: string;
+  timeBased: boolean;
+  reps: number | null;
+  repsToFailure?: boolean;
+  workingPhases: TimePhase[];
+};
+
 /** Full exercise spec for saved workouts and scheduled tasks. */
 export type ExerciseDefinition = {
   name: string;
@@ -46,6 +55,8 @@ export type ExerciseDefinition = {
   distanceMiles?: number;
   /** Steady cardio: pace (free text, e.g. 8:30 / mi). */
   paceDescription?: string;
+  /** Circuit only: moves in order for each round (`sets` = number of rounds). */
+  circuitStations?: CircuitStation[];
 };
 
 export type Task = {
@@ -78,6 +89,15 @@ export type Day = {
   workoutSessionDurationsSeconds?: number[];
 };
 
+/** One circuit station in the workout form. */
+export type CircuitStationFormInput = {
+  name: string;
+  repsStr: string;
+  repsUntilFailure: boolean;
+  timeBased: boolean;
+  phases: { label: string; minutesStr: string }[];
+};
+
 /** Draft row in the Workouts screen editor before validation. */
 export type ExerciseFormInput = {
   name: string;
@@ -100,6 +120,8 @@ export type ExerciseFormInput = {
   distanceMilesStr: string;
   /** Steady cardio pace description. */
   paceStr: string;
+  /** Circuit only: stations in order. */
+  circuitStations: CircuitStationFormInput[];
 };
 
 /** Reusable template saved from the Workouts tab. */

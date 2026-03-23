@@ -326,9 +326,9 @@ export default function HomeScreen() {
             <Text style={[styles.weekday, styles.heroWeekdayFlex]} numberOfLines={1}>
               {weekday}
             </Text>
-            <Text style={styles.streakInline} numberOfLines={1}>
-              <Text style={styles.streakLabelInline}>Streak: </Text>
-              <Text style={styles.streakNumberInline}>{streak}</Text>
+            <Text style={[styles.weekday, styles.heroStreak]} numberOfLines={1}>
+              Streak:{' '}
+              <Text style={styles.streakNumberOrange}>{streak}</Text>
             </Text>
           </View>
           <Text style={styles.calendarDate}>{calendarLine}</Text>
@@ -538,19 +538,11 @@ const styles = StyleSheet.create({
     color: V.text,
     letterSpacing: -0.8,
   },
-  streakInline: {
+  heroStreak: {
     flexShrink: 0,
   },
-  streakLabelInline: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: V.textSecondary,
-  },
-  streakNumberInline: {
-    fontSize: 22,
-    fontWeight: '700',
+  streakNumberOrange: {
     color: V.streakFlame,
-    letterSpacing: -0.3,
   },
   calendarDate: {
     fontSize: 17,

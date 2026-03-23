@@ -1,4 +1,6 @@
 import type {
+  CircuitStation,
+  CircuitStationFormInput,
   DistancePhase,
   ExerciseDefinition,
   ExerciseFormInput,
@@ -22,6 +24,16 @@ export function formatDuration(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
+export function emptyCircuitStationForm(): CircuitStationFormInput {
+  return {
+    name: '',
+    repsStr: '10',
+    repsUntilFailure: false,
+    timeBased: false,
+    phases: [],
+  };
+}
+
 export function emptyExerciseForm(): ExerciseFormInput {
   return {
     name: '',
@@ -39,6 +51,7 @@ export function emptyExerciseForm(): ExerciseFormInput {
     cardioIntervalMeasure: 'time',
     distanceMilesStr: '',
     paceStr: '',
+    circuitStations: [],
   };
 }
 
@@ -142,10 +155,9 @@ function parseRestSeconds(f: ExerciseFormInput): number | null {
     : null;
 }
 
-function weightedOrCircuitDefinition(
+function weightedExerciseDefinition(
   f: ExerciseFormInput,
   name: string,
-  kind: 'weighted' | 'circuit',
 ): ExerciseDefinition | null {
   const sets = Math.max(1, parseInt(f.setsStr, 10) || 1);
 
@@ -160,7 +172,7 @@ function weightedOrCircuitDefinition(
           timeBased: false,
           workingPhases: [],
           restSeconds: null,
-          kind,
+          kind: 'weighted',
           ...(f.optional ? { optional: true } : {}),
         },
         f.notesStr,
@@ -178,7 +190,7 @@ function weightedOrCircuitDefinition(
         timeBased: false,
         workingPhases: [],
         restSeconds: null,
-        kind,
+        kind: 'weighted',
         ...(f.optional ? { optional: true } : {}),
       },
       f.notesStr,
@@ -209,7 +221,90 @@ function weightedOrCircuitDefinition(
       timeBased: true,
       workingPhases: phases,
       restSeconds: parseRestSeconds(f),
-      kind,
+      kind: 'weighted',
+      ...(f.optional ? { optional: true } : {}),
+    },
+    f.notesStr,
+  );
+}
+
+function circuitStationFormToDef(s: CircuitStationFormInput): CircuitStation | null {
+  const stationName = s.name.trim();
+  if (!stationName) {
+    return null;
+  }
+  if (s.timeBased) {
+    const phases: TimePhase[] = [];
+    for (const p of s.phases) {
+      const label = p.label.trim();
+      const min = parseFloat(String(p.minutesStr).replace(',', '.'));
+      if (!label || !Number.isFinite(min) || min <= 0) {
+        continue;
+      }
+      phases.push({
+        label,
+        durationSeconds: Math.round(min * 60),
+      });
+    }
+    if (phases.length === 0) {
+      return null;
+    }
+    return {
+      name: stationName,
+      timeBased: true,
+      reps: null,
+      workingPhases: phases,
+    };
+  }
+  if (s.repsUntilFailure) {
+    return {
+      name: stationName,
+      timeBased: false,
+      reps: 1,
+      repsToFailure: true,
+      workingPhases: [],
+    };
+  }
+  const r = parseInt(s.repsStr, 10);
+  if (!Number.isFinite(r) || r < 1) {
+    return null;
+  }
+  return {
+    name: stationName,
+    timeBased: false,
+    reps: r,
+    workingPhases: [],
+  };
+}
+
+function circuitFormToDefinition(f: ExerciseFormInput): ExerciseDefinition | null {
+  const name = f.name.trim();
+  if (!name) {
+    return null;
+  }
+  const rounds = Math.max(1, parseInt(f.setsStr, 10) || 1);
+  const stationsIn = f.circuitStations ?? [];
+  if (stationsIn.length === 0) {
+    return null;
+  }
+  const stations: CircuitStation[] = [];
+  for (const row of stationsIn) {
+    const st = circuitStationFormToDef(row);
+    if (!st) {
+      return null;
+    }
+    stations.push(st);
+  }
+  return withExerciseNotes(
+    {
+      name,
+      sets: rounds,
+      reps: null,
+      timeBased: false,
+      workingPhases: [],
+      restSeconds: null,
+      kind: 'circuit',
+      circuitStations: stations,
       ...(f.optional ? { optional: true } : {}),
     },
     f.notesStr,
@@ -225,11 +320,11 @@ export function formToExerciseDefinition(
   }
 
   if (f.kind === 'weighted') {
-    return weightedOrCircuitDefinition(f, name, 'weighted');
+    return weightedExerciseDefinition(f, name);
   }
 
   if (f.kind === 'circuit') {
-    return weightedOrCircuitDefinition(f, name, 'circuit');
+    return circuitFormToDefinition(f);
   }
 
   if (f.kind !== 'cardio') {
@@ -340,12 +435,104 @@ export function secondsToMinutesInputStr(seconds: number): string {
   return String(r);
 }
 
+function circuitStationToFormInput(s: CircuitStation): CircuitStationFormInput {
+  if (s.timeBased) {
+    let phases = s.workingPhases.map((p) => ({
+      label: p.label,
+      minutesStr: secondsToMinutesInputStr(p.durationSeconds),
+    }));
+    if (phases.length === 0) {
+      phases = [{ label: '', minutesStr: '' }];
+    }
+    return {
+      name: s.name,
+      timeBased: true,
+      phases,
+      repsStr: '',
+      repsUntilFailure: false,
+    };
+  }
+  return {
+    name: s.name,
+    timeBased: false,
+    phases: [],
+    repsUntilFailure: s.repsToFailure === true,
+    repsStr: s.repsToFailure ? '' : String(s.reps != null && s.reps >= 1 ? s.reps : 10),
+  };
+}
+
 /** Populate the exercise editor from a saved definition. */
 export function exerciseDefinitionToFormInput(
   ex: ExerciseDefinition,
 ): ExerciseFormInput {
   const baseOptional = ex.optional === true;
   const kind = ex.kind ?? 'weighted';
+
+  if (kind === 'circuit') {
+    const stations = ex.circuitStations;
+    if (stations && stations.length > 0) {
+      return {
+        name: ex.name,
+        setsStr: String(Math.max(1, ex.sets)),
+        repsStr: '',
+        repsUntilFailure: false,
+        timeBased: false,
+        phases: [],
+        distancePhases: [],
+        restMinutesStr: '',
+        notesStr: ex.notes ?? '',
+        optional: baseOptional,
+        kind: 'circuit',
+        cardioPattern: 'interval',
+        cardioIntervalMeasure: 'time',
+        distanceMilesStr: '',
+        paceStr: '',
+        circuitStations: stations.map(circuitStationToFormInput),
+      };
+    }
+    const innerStation: CircuitStationFormInput = ex.timeBased
+      ? {
+          name: ex.name,
+          timeBased: true,
+          phases:
+            ex.workingPhases.length > 0
+              ? ex.workingPhases.map((p) => ({
+                  label: p.label,
+                  minutesStr: secondsToMinutesInputStr(p.durationSeconds),
+                }))
+              : [{ label: '', minutesStr: '' }],
+          repsStr: '',
+          repsUntilFailure: false,
+        }
+      : {
+          name: ex.name,
+          timeBased: false,
+          phases: [],
+          repsUntilFailure: ex.repsToFailure === true,
+          repsStr:
+            ex.repsToFailure === true
+              ? ''
+              : String(ex.reps != null && ex.reps >= 1 ? ex.reps : 10),
+        };
+    return {
+      name: ex.name,
+      setsStr: String(Math.max(1, ex.sets)),
+      repsStr: '',
+      repsUntilFailure: false,
+      timeBased: false,
+      phases: [],
+      distancePhases: [],
+      restMinutesStr: '',
+      notesStr: ex.notes ?? '',
+      optional: baseOptional,
+      kind: 'circuit',
+      cardioPattern: 'interval',
+      cardioIntervalMeasure: 'time',
+      distanceMilesStr: '',
+      paceStr: '',
+      circuitStations: [innerStation],
+    };
+  }
 
   if (kind === 'cardio' && ex.cardioPattern === 'steady_distance') {
     return {
@@ -367,6 +554,7 @@ export function exerciseDefinitionToFormInput(
           ? String(ex.distanceMiles)
           : '',
       paceStr: ex.paceDescription ?? '',
+      circuitStations: [],
     };
   }
 
@@ -403,6 +591,7 @@ export function exerciseDefinitionToFormInput(
       cardioIntervalMeasure: 'distance',
       distanceMilesStr: '',
       paceStr: '',
+      circuitStations: [],
     };
   }
 
@@ -438,13 +627,8 @@ export function exerciseDefinitionToFormInput(
       cardioIntervalMeasure: 'time',
       distanceMilesStr: '',
       paceStr: '',
+      circuitStations: [],
     };
-  }
-
-  if (kind === 'circuit') {
-    const circuitEx: ExerciseDefinition = { ...ex, kind: 'weighted' };
-    const inner = exerciseDefinitionToFormInput(circuitEx);
-    return { ...inner, kind: 'circuit' };
   }
 
   if (!ex.timeBased) {
@@ -465,6 +649,7 @@ export function exerciseDefinitionToFormInput(
       cardioIntervalMeasure: 'time',
       distanceMilesStr: '',
       paceStr: '',
+      circuitStations: [],
     };
   }
 
@@ -494,6 +679,7 @@ export function exerciseDefinitionToFormInput(
     cardioIntervalMeasure: 'time',
     distanceMilesStr: '',
     paceStr: '',
+    circuitStations: [],
   };
 }
 
@@ -684,11 +870,29 @@ export function exerciseSummaryLines(ex: ExerciseDefinition): string[] {
     return lines;
   }
 
-  if (kind === 'circuit') {
-    lines.push('Circuit');
+  if (kind === 'circuit' && ex.circuitStations && ex.circuitStations.length > 0) {
+    const rStr = `${ex.sets} round${ex.sets === 1 ? '' : 's'}`;
+    lines.push(`${rStr} · circuit`);
+    for (const st of ex.circuitStations) {
+      if (st.timeBased) {
+        const parts = st.workingPhases.map(
+          (p) => `${p.label} ${formatDuration(p.durationSeconds)}`,
+        );
+        lines.push(
+          `${st.name}: ${parts.length > 0 ? parts.join(' · ') : 'time blocks'}`,
+        );
+      } else if (st.repsToFailure) {
+        lines.push(`${st.name}: to failure`);
+      } else {
+        const r = st.reps ?? 0;
+        lines.push(`${st.name}: ${r} rep${r === 1 ? '' : 's'}`);
+      }
+    }
+    return lines;
   }
 
-  const setStr = `${ex.sets} set${ex.sets === 1 ? '' : 's'}`;
+  const setLabel = kind === 'circuit' ? 'round' : 'set';
+  const setStr = `${ex.sets} ${setLabel}${ex.sets === 1 ? '' : 's'}`;
   if (!ex.timeBased) {
     if (ex.repsToFailure) {
       lines.push(`${setStr} · to failure`);
@@ -745,6 +949,21 @@ function isExerciseKind(
   return x === 'weighted' || x === 'cardio' || x === 'circuit';
 }
 
+function isCircuitStation(x: unknown): x is CircuitStation {
+  if (x == null || typeof x !== 'object') {
+    return false;
+  }
+  const s = x as CircuitStation;
+  return (
+    typeof s.name === 'string' &&
+    typeof s.timeBased === 'boolean' &&
+    (s.reps === null || typeof s.reps === 'number') &&
+    (s.repsToFailure === undefined || typeof s.repsToFailure === 'boolean') &&
+    Array.isArray(s.workingPhases) &&
+    s.workingPhases.every(isTimePhase)
+  );
+}
+
 function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
   if (x == null || typeof x !== 'object') {
     return false;
@@ -755,6 +974,9 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
   const distOk =
     e.distancePhases === undefined ||
     (Array.isArray(e.distancePhases) && e.distancePhases.every(isDistancePhase));
+  const circuitOk =
+    e.circuitStations === undefined ||
+    (Array.isArray(e.circuitStations) && e.circuitStations.every(isCircuitStation));
   return (
     typeof e.name === 'string' &&
     typeof e.sets === 'number' &&
@@ -764,6 +986,7 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
     typeof e.timeBased === 'boolean' &&
     phasesOk &&
     distOk &&
+    circuitOk &&
     (e.restSeconds === null || typeof e.restSeconds === 'number') &&
     (e.notes === undefined || typeof e.notes === 'string') &&
     (e.kind === undefined || isExerciseKind(e.kind)) &&
