@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import type { StackScreenProps } from '@react-navigation/stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +12,7 @@ import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
 import { savedWorkoutExerciseCount, savedWorkoutLabel } from '../utils/workouts';
 
-type Props = StackScreenProps<WorkoutsStackParamList, 'WorkoutsList'>;
+type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsList'>;
 
 export default function WorkoutsListScreen({ navigation }: Props) {
   const tabBarHeight = useBottomTabBarHeight();

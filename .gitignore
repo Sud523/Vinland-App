@@ -6,6 +6,7 @@
 # Expo
 .expo/
 .tmp-export*
+dist/
 web-build/
 expo-env.d.ts
 

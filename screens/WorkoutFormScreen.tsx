@@ -1,6 +1,6 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import type { StackScreenProps } from '@react-navigation/stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
@@ -30,7 +30,7 @@ import {
   sectionedFormsToDefinitions,
 } from '../utils/workouts';
 
-type Props = StackScreenProps<WorkoutsStackParamList, 'WorkoutForm'>;
+type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutForm'>;
 
 type ExerciseRow = { id: string; form: ExerciseFormInput };
 

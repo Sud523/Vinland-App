@@ -1,5 +1,5 @@
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet } from 'react-native';
@@ -13,7 +13,7 @@ import { V } from './constants/vinlandTheme';
 import {
   headerTitleBarContainerStyle,
   headerTitleBarStyle,
-  rootStackCardTransition,
+  smoothStackTransition,
 } from './navigation/headerNav';
 import MainTabs from './navigation/MainTabs';
 import type { RootStackParamList } from './navigation/types';
@@ -32,7 +32,7 @@ const navTheme: Theme = {
   },
 };
 
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
@@ -43,7 +43,9 @@ export default function App() {
             <Stack.Navigator
               screenOptions={{
                 headerShown: false,
-                ...rootStackCardTransition,
+                presentation: 'card',
+                ...smoothStackTransition,
+                ...(Platform.OS === 'ios' ? { fullScreenGestureEnabled: true } : {}),
               }}>
               <Stack.Screen name="Main" component={MainTabs} />
               <Stack.Screen
@@ -53,10 +55,30 @@ export default function App() {
                   headerShown: true,
                   title: 'Settings',
                   headerBackVisible: false,
-                  ...rootStackCardTransition,
-                  headerLeft: () => (
-                    <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
-                  ),
+                  presentation: 'card',
+                  ...smoothStackTransition,
+                  ...Platform.select({
+                    ios: {
+                      fullScreenGestureEnabled: true,
+                      unstable_headerLeftItems: () => [
+                        {
+                          type: 'custom' as const,
+                          hidesSharedBackground: true,
+                          element: (
+                            <OutlinedNavBackButton
+                              compact
+                              onPress={() => navigation.goBack()}
+                            />
+                          ),
+                        },
+                      ],
+                    },
+                    default: {
+                      headerLeft: () => (
+                        <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
+                      ),
+                    },
+                  }),
                   headerLeftContainerStyle: {
                     paddingLeft: Platform.OS === 'ios' ? 8 : 6,
                     paddingRight: 6,
@@ -67,12 +89,11 @@ export default function App() {
                   headerTitleContainerStyle: headerTitleBarContainerStyle,
                   headerStyle: {
                     backgroundColor: V.bg,
-                    borderBottomWidth: 0,
-                    elevation: 0,
-                    shadowOpacity: 0,
                   },
                   headerTintColor: V.text,
                   headerTitleStyle: headerTitleBarStyle,
+                  contentStyle: { backgroundColor: V.bg },
+                  headerShadowVisible: false,
                 })}
               />
             </Stack.Navigator>
