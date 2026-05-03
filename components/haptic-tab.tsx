@@ -1,3 +1,4 @@
+/** Wraps bottom tab press with light iOS haptics (Expo template helper). */
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { PlatformPressable } from '@react-navigation/elements';
 import * as Haptics from 'expo-haptics';

@@ -1,3 +1,6 @@
+/**
+ * Interval timer for time-based exercises on today’s task list (audio chime; no journal writes).
+ */
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,6 +37,7 @@ type TimedPick = {
   completed: boolean;
 };
 
+/** Flattens today’s tasks into selectable timed exercises for the interval runner. */
 function collectTimedExercises(tasks: Task[]): TimedPick[] {
   const out: TimedPick[] = [];
   tasks.forEach((task, taskIndex) => {

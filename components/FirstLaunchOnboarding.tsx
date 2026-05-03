@@ -1,3 +1,6 @@
+/**
+ * Full-screen first-run wizard (modal): name, training prefs, optional weight goal commit.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -35,6 +38,7 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
   },
 ];
 
+/** Renders only while `onboardingComplete` is false after prefs hydrate; advances persisted steps. */
 export function FirstLaunchOnboarding() {
   const {
     displayName,

@@ -1,3 +1,6 @@
+/**
+ * Labeled block with Vinland checkbox styling (nutrition rows on Home).
+ */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 

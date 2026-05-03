@@ -1,5 +1,7 @@
+/**
+ * iOS-style chevron back control used in stack headers (compact + optional label).
+ */
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
 import {
   Platform,
   StyleSheet,

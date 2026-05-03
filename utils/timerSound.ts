@@ -1,3 +1,7 @@
+/**
+ * Loads and plays a short WAV when a timer segment completes (expo-av).
+ * Configures audio session for mix/duck so other apps recover cleanly after chimes.
+ */
 import {
   Audio,
   InterruptionModeAndroid,
@@ -6,7 +10,7 @@ import {
 
 let chime: Audio.Sound | null = null;
 
-/** Keep session in mix mode so iOS never leaves other apps ducked after the beep. */
+/** Configures iOS/Android playback modes before creating or replaying sound instances. */
 async function ensureTimerAudioMode(): Promise<void> {
   await Audio.setAudioModeAsync({
     allowsRecordingIOS: false,
@@ -19,6 +23,7 @@ async function ensureTimerAudioMode(): Promise<void> {
   });
 }
 
+/** Lazily creates the shared `Audio.Sound` from bundled asset; no-op if already loaded. */
 export async function loadTimerChime(): Promise<void> {
   if (chime) {
     return;
@@ -31,6 +36,7 @@ export async function loadTimerChime(): Promise<void> {
   chime = sound;
 }
 
+/** Replays the chime from the start; re-asserts audio mode for reliability. */
 export async function playTimerChime(): Promise<void> {
   try {
     await loadTimerChime();
@@ -50,6 +56,7 @@ export async function playTimerChime(): Promise<void> {
   }
 }
 
+/** Releases native sound resources (call on screen unmount or app background if desired). */
 export async function unloadTimerChime(): Promise<void> {
   try {
     await ensureTimerAudioMode();

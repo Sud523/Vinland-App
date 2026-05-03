@@ -1,3 +1,6 @@
+/**
+ * Circular progress for `TimerScreen` work/rest/between segments.
+ */
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';

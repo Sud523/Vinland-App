@@ -1,3 +1,6 @@
+/**
+ * Gear icon in tab headers; navigates to root `Settings` stack screen via parent navigator.
+ */
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

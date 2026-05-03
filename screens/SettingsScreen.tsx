@@ -1,3 +1,6 @@
+/**
+ * Profile editor: display name, weekly targets, calorie goal, cut/bulk baseline commits.
+ */
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

@@ -1,3 +1,6 @@
+/**
+ * Maps SF Symbol names to Material Icons for Android/web (Expo template).
+ */
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';

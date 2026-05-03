@@ -1,3 +1,7 @@
+/**
+ * Root application shell: gesture handler, safe areas, navigation theme, tabbed main UI,
+ * and a stacked Settings screen. `FirstLaunchOnboarding` mounts as a sibling overlay.
+ */
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';

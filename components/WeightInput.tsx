@@ -1,3 +1,6 @@
+/**
+ * Daily weight capture with optional lock after first positive save (Home tab).
+ */
 import React, { useEffect, useState } from 'react';
 import {
   Keyboard,

@@ -1,3 +1,8 @@
+/**
+ * Workout domain: parsing exercise editor forms into `ExerciseDefinition`, converting
+ * saved workouts into schedulable `Task` lists, normalizing legacy storage, segmenting
+ * scheduled blocks for Week swipe-delete, and human-readable summaries for lists.
+ */
 import type {
   CircuitStation,
   CircuitStationFormInput,
@@ -9,6 +14,7 @@ import type {
   TimePhase,
 } from '../types';
 
+/** Compact human-readable duration for UI (seconds or minutes). */
 export function formatDuration(seconds: number): string {
   if (seconds <= 0) {
     return '0s';
@@ -24,6 +30,7 @@ export function formatDuration(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
+/** Fresh circuit station row defaults for `ExerciseEditorCard`. */
 export function emptyCircuitStationForm(): CircuitStationFormInput {
   return {
     name: '',
@@ -34,6 +41,7 @@ export function emptyCircuitStationForm(): CircuitStationFormInput {
   };
 }
 
+/** Default weighted-exercise form row for adding a new move in the editor. */
 export function emptyExerciseForm(): ExerciseFormInput {
   return {
     name: '',
@@ -60,6 +68,7 @@ export function savedWorkoutExerciseCount(w: SavedWorkout): number {
   return w.warmUp.length + w.workout.length + w.coolDown.length;
 }
 
+/** Converts a non-empty list of form rows into definitions (save validation for one section). */
 export function formsToDefinitions(
   forms: ExerciseFormInput[],
 ): { ok: true; exercises: ExerciseDefinition[] } | { ok: false; message: string } {
@@ -80,6 +89,7 @@ export function formsToDefinitions(
   return { ok: true, exercises };
 }
 
+/** Like `formsToDefinitions` but allows zero rows (empty warm up / cool down sections). */
 export function formsToDefinitionsAllowEmpty(
   forms: ExerciseFormInput[],
   sectionLabel: string,
@@ -101,6 +111,7 @@ export function formsToDefinitionsAllowEmpty(
   return { ok: true, exercises };
 }
 
+/** Validates warm up + main + cool down together; requires at least one exercise overall. */
 export function sectionedFormsToDefinitions(
   warmUp: ExerciseFormInput[],
   workout: ExerciseFormInput[],
@@ -137,6 +148,7 @@ export function sectionedFormsToDefinitions(
   };
 }
 
+/** Attaches trimmed `notes` string when the user entered coach text in the form. */
 function withExerciseNotes(
   def: ExerciseDefinition,
   notesStr: string | undefined,
@@ -148,6 +160,7 @@ function withExerciseNotes(
   return def;
 }
 
+/** Parses rest duration from minutes string; null if absent or invalid. */
 function parseRestSeconds(f: ExerciseFormInput): number | null {
   const restMin = parseFloat(String(f.restMinutesStr).replace(',', '.'));
   return Number.isFinite(restMin) && restMin > 0
@@ -155,6 +168,7 @@ function parseRestSeconds(f: ExerciseFormInput): number | null {
     : null;
 }
 
+/** Builds a weighted exercise (reps, to-failure, or timed phases) from form input. */
 function weightedExerciseDefinition(
   f: ExerciseFormInput,
   name: string,
@@ -228,6 +242,7 @@ function weightedExerciseDefinition(
   );
 }
 
+/** Validates one circuit station sub-row (timed phases or rep-based). */
 function circuitStationFormToDef(s: CircuitStationFormInput): CircuitStation | null {
   const stationName = s.name.trim();
   if (!stationName) {
@@ -277,6 +292,7 @@ function circuitStationFormToDef(s: CircuitStationFormInput): CircuitStation | n
   };
 }
 
+/** Circuit parent exercise: `sets` becomes rounds; requires at least one valid station. */
 function circuitFormToDefinition(f: ExerciseFormInput): ExerciseDefinition | null {
   const name = f.name.trim();
   if (!name) {
@@ -311,6 +327,10 @@ function circuitFormToDefinition(f: ExerciseFormInput): ExerciseDefinition | nul
   );
 }
 
+/**
+ * Dispatcher: weighted vs circuit vs cardio (steady or interval, time or distance).
+ * Returns null when required numeric/label fields fail validation.
+ */
 export function formToExerciseDefinition(
   f: ExerciseFormInput,
 ): ExerciseDefinition | null {
@@ -435,6 +455,7 @@ export function secondsToMinutesInputStr(seconds: number): string {
   return String(r);
 }
 
+/** Inverse of `circuitStationFormToDef` for editing saved circuits in the form UI. */
 function circuitStationToFormInput(s: CircuitStation): CircuitStationFormInput {
   if (s.timeBased) {
     let phases = s.workingPhases.map((p) => ({
@@ -912,6 +933,7 @@ export function exerciseSummaryLines(ex: ExerciseDefinition): string[] {
   return lines;
 }
 
+/** Upgrades oldest journal format where exercises were plain strings (name only). */
 function legacyStringToExercise(name: string): ExerciseDefinition {
   return {
     name,
@@ -923,6 +945,7 @@ function legacyStringToExercise(name: string): ExerciseDefinition {
   };
 }
 
+/** Runtime type guard for parsed JSON time-phase objects. */
 function isTimePhase(x: unknown): x is TimePhase {
   return (
     x != null &&
@@ -933,6 +956,7 @@ function isTimePhase(x: unknown): x is TimePhase {
   );
 }
 
+/** Runtime type guard for parsed JSON distance-interval objects. */
 function isDistancePhase(x: unknown): x is DistancePhase {
   return (
     x != null &&
@@ -943,12 +967,14 @@ function isDistancePhase(x: unknown): x is DistancePhase {
   );
 }
 
+/** Narrowing helper for `exercise.kind` strings during JSON validation. */
 function isExerciseKind(
   x: unknown,
 ): x is 'weighted' | 'cardio' | 'circuit' {
   return x === 'weighted' || x === 'cardio' || x === 'circuit';
 }
 
+/** Validates one circuit station object inside a parsed exercise. */
 function isCircuitStation(x: unknown): x is CircuitStation {
   if (x == null || typeof x !== 'object') {
     return false;
@@ -964,6 +990,7 @@ function isCircuitStation(x: unknown): x is CircuitStation {
   );
 }
 
+/** Full exercise object guard used when rehydrating storage. */
 function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
   if (x == null || typeof x !== 'object') {
     return false;
@@ -1001,6 +1028,7 @@ function isExerciseDefinition(x: unknown): x is ExerciseDefinition {
   );
 }
 
+/** Coerces JSON array entries into definitions (strings → legacy placeholder). */
 function parseExerciseDefinitionList(arr: unknown): ExerciseDefinition[] {
   if (!Array.isArray(arr)) {
     return [];

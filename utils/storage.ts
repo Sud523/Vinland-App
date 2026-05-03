@@ -1,3 +1,8 @@
+/**
+ * Single source of truth for AsyncStorage persistence.
+ * All journal days, saved workouts, profile, onboarding, cheat meal, and weight-goal
+ * keys are defined and accessed here. Callers screens/utils merge and validate domain rules.
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Day, SavedWorkout } from '../types';
@@ -10,6 +15,7 @@ const WEIGHT_GOAL_KEY = '@vinland_weight_goal';
 const DISPLAY_NAME_KEY = '@vinland_display_name';
 const PROFILE_PREFS_KEY = '@vinland_profile_prefs';
 const ONBOARDING_COMPLETE_KEY = '@vinland_onboarding_complete';
+/** Exported for UserPrefsContext hydration alongside other parallel loads. */
 export const ONBOARDING_STEP_STORAGE_KEY = '@vinland_onboarding_step';
 
 export type ActivityLevel = 'inactive' | 'active' | 'extremely_active';
@@ -40,10 +46,12 @@ export type CheatMealWeekState = {
   used: boolean;
 };
 
+/** Replaces the entire journal array in storage (full snapshot pattern). */
 export async function saveData(days: Day[]): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(days));
 }
 
+/** Loads all calendar `Day` rows; returns [] if missing or corrupt JSON. */
 export async function loadData(): Promise<Day[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (raw == null) {
@@ -57,10 +65,15 @@ export async function loadData(): Promise<Day[]> {
   }
 }
 
+/** Persists the workout template library as a JSON array. */
 export async function saveSavedWorkouts(workouts: SavedWorkout[]): Promise<void> {
   await AsyncStorage.setItem(SAVED_WORKOUTS_KEY, JSON.stringify(workouts));
 }
 
+/**
+ * Loads saved templates; each item is passed through `normalizeSavedWorkout`
+ * so legacy shapes (e.g. flat `exercises`) upgrade safely.
+ */
 export async function loadSavedWorkouts(): Promise<SavedWorkout[]> {
   const raw = await AsyncStorage.getItem(SAVED_WORKOUTS_KEY);
   if (raw == null) {
@@ -79,6 +92,10 @@ export async function loadSavedWorkouts(): Promise<SavedWorkout[]> {
   }
 }
 
+/**
+ * Cheat meal flag for the ISO week starting Monday `currentMondayKey`.
+ * If storage references a different week, resets `used` to false and writes the fresh state.
+ */
 export async function loadCheatMealState(
   currentMondayKey: string,
 ): Promise<CheatMealWeekState> {
@@ -111,10 +128,12 @@ export async function loadCheatMealState(
   return { weekStartMonday: currentMondayKey, used: false };
 }
 
+/** Writes cheat meal consumption for the current week (one shot until Monday rollover). */
 export async function saveCheatMealState(state: CheatMealWeekState): Promise<void> {
   await AsyncStorage.setItem(CHEAT_MEAL_KEY, JSON.stringify(state));
 }
 
+/** Returns null if unset or JSON does not match `WeightGoalState` schema. */
 export async function loadWeightGoal(): Promise<WeightGoalState | null> {
   const raw = await AsyncStorage.getItem(WEIGHT_GOAL_KEY);
   if (raw == null) {
@@ -144,10 +163,12 @@ export async function loadWeightGoal(): Promise<WeightGoalState | null> {
   }
 }
 
+/** Stores cut/bulk baseline (latest weight snapshot at commit time). */
 export async function saveWeightGoal(state: WeightGoalState): Promise<void> {
   await AsyncStorage.setItem(WEIGHT_GOAL_KEY, JSON.stringify(state));
 }
 
+/** Trimmed non-empty display name, or null if absent. */
 export async function loadDisplayName(): Promise<string | null> {
   const raw = await AsyncStorage.getItem(DISPLAY_NAME_KEY);
   if (raw == null) {
@@ -157,14 +178,20 @@ export async function loadDisplayName(): Promise<string | null> {
   return t.length > 0 ? t : null;
 }
 
+/** Saves user-visible name (trimmed). */
 export async function saveDisplayName(name: string): Promise<void> {
   await AsyncStorage.setItem(DISPLAY_NAME_KEY, name.trim());
 }
 
+/** Narrowing guard for activity level strings inside `loadProfilePrefs`. */
 function isActivityLevel(v: unknown): v is ActivityLevel {
   return v === 'inactive' || v === 'active' || v === 'extremely_active';
 }
 
+/**
+ * Loads workouts/week + activity + calorie goal blob with validation.
+ * Returns null if corrupt; callers usually substitute DEFAULT_PROFILE_PREFS.
+ */
 export async function loadProfilePrefs(): Promise<ProfilePrefs | null> {
   const raw = await AsyncStorage.getItem(PROFILE_PREFS_KEY);
   if (raw == null) {
@@ -203,18 +230,22 @@ export async function loadProfilePrefs(): Promise<ProfilePrefs | null> {
   }
 }
 
+/** Writes the full profile preferences object (replaces previous blob). */
 export async function saveProfilePrefs(prefs: ProfilePrefs): Promise<void> {
   await AsyncStorage.setItem(PROFILE_PREFS_KEY, JSON.stringify(prefs));
 }
 
+/** True when `@vinland_onboarding_complete` is exactly the string `'true'`. */
 export async function loadOnboardingComplete(): Promise<boolean> {
   return (await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)) === 'true';
 }
 
+/** Persists onboarding completion as `'true'` or `'false'` string. */
 export async function saveOnboardingComplete(complete: boolean): Promise<void> {
   await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, complete ? 'true' : 'false');
 }
 
+/** Current onboarding wizard step (0–4); invalid stored values clamp to 0. */
 export async function loadOnboardingStep(): Promise<number> {
   const raw = await AsyncStorage.getItem(ONBOARDING_STEP_STORAGE_KEY);
   if (raw == null) {
@@ -227,10 +258,12 @@ export async function loadOnboardingStep(): Promise<number> {
   return n;
 }
 
+/** Persists which onboarding screen to resume. */
 export async function saveOnboardingStep(step: number): Promise<void> {
   await AsyncStorage.setItem(ONBOARDING_STEP_STORAGE_KEY, String(step));
 }
 
+/** Clears resume pointer when onboarding finishes successfully. */
 export async function clearOnboardingStep(): Promise<void> {
   await AsyncStorage.removeItem(ONBOARDING_STEP_STORAGE_KEY);
 }

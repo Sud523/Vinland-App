@@ -1,3 +1,7 @@
+/**
+ * Helpers for finding the most recent weight entry in the journal.
+ * Used by Stats and by `commitWeightGoalForMode` when establishing baselines.
+ */
 import type { Day } from '../types';
 
 /** Most recent journal day with a weight entry (by date key, newest first). */

@@ -1,3 +1,6 @@
+/**
+ * Create or edit a `SavedWorkout`: warm up / workout / cool down exercise builders, validation, persist library.
+ */
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';

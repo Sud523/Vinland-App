@@ -1,3 +1,6 @@
+/**
+ * Single journal task row for Home: optional exercise detail lines and completion toggle.
+ */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 

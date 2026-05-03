@@ -1,3 +1,6 @@
+/**
+ * Browse and delete saved workout templates; entry point into `WorkoutForm` for new/edit.
+ */
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';

@@ -1,3 +1,6 @@
+/**
+ * Aggregate history: completion %, best streak, weight vs goal baseline, calorie streak rings.
+ */
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -12,6 +15,7 @@ import { getLatestWeightEntry } from '../utils/journalWeight';
 import { calorieGoalHitStreak, computeStats, formatHms } from '../utils/stats';
 import { loadData, loadWeightGoal, type WeightGoalState } from '../utils/storage';
 
+/** Renders a journal date key as a short locale date string for copy blocks. */
 function formatDateKey(key: string): string {
   return parseDateKeyLocal(key).toLocaleDateString(undefined, {
     month: 'short',

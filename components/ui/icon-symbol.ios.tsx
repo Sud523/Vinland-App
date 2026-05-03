@@ -1,3 +1,4 @@
+/** iOS native SF Symbol renderer (Expo template). */
 import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { StyleProp, ViewStyle } from 'react-native';
 

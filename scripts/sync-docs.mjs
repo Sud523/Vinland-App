@@ -1,6 +1,8 @@
 /**
- * Run `npx expo export -p web --clear`, then replace docs/ with dist/
- * so GitHub Pages (docs folder) matches the latest web build.
+ * Runs `npx expo export -p web --clear`, then replaces `docs/` with `dist/`
+ * so GitHub Pages (branch `/docs`) always matches the latest static web build.
+ *
+ * Usage: `npm run export:docs`
  */
 import { execSync } from 'node:child_process';
 import { cpSync, mkdirSync, rmSync } from 'node:fs';

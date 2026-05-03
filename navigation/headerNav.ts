@@ -1,3 +1,6 @@
+/**
+ * Navigation chrome shared by native stacks: transition presets and header text styles.
+ */
 import { Platform } from 'react-native';
 
 import { V } from '../constants/vinlandTheme';

@@ -1,3 +1,4 @@
+/** Theme-aware `View` using legacy `constants/theme` (router template). */
 import { View, type ViewProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';

@@ -6,6 +6,10 @@
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+/**
+ * Resolves a named color from `constants/theme` with optional light/dark prop overrides
+ * (legacy Expo template helper — Vinland primarily uses `vinlandTheme`).
+ */
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark

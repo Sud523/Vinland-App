@@ -1,3 +1,8 @@
+/**
+ * Shared domain types for the Vinland journal, workout library, and exercise editor.
+ * `Day` / `Task` mirror AsyncStorage JSON; `ExerciseDefinition` is the structured
+ * shape embedded in tasks and saved templates; `ExerciseFormInput` is UI draft state.
+ */
 /** One interval during “time working” (e.g. hard, light). */
 export type TimePhase = {
   label: string;
@@ -76,6 +81,10 @@ export type Day = {
   date: string;
   weight?: number;
   tasks: Task[];
+  /**
+   * Planned recovery day from Week tab: clears workouts, blocks new ones, counts toward streak.
+   */
+  restDay?: boolean;
   /** Locked until next calendar day once true. */
   calorieGoalHit?: boolean;
   /** Calories over daily goal (0 = on target). Meaningful when calorieGoalHit. */

@@ -1,3 +1,4 @@
+/** Simple expandable section with chevron (Expo router template UI). */
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 

@@ -1,3 +1,7 @@
+/**
+ * Bottom tab navigator for the five primary surfaces (Home, Workouts stack, Week, Timer, Stats).
+ * Workouts hides the tab header because the nested stack supplies its own.
+ */
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';

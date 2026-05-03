@@ -1,3 +1,4 @@
+/** Opens http(s) links in in-app browser on native with safe fallback to Linking. */
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { type ReactNode } from 'react';
 import {

@@ -1,3 +1,7 @@
+/**
+ * Week-at-a-glance planner: add saved workouts per day, swipe-delete scheduled blocks,
+ * view completion state (past days locked for destructive edits).
+ */
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,6 +19,7 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
 import type { Day, SavedWorkout, Task } from '../types';
 import { loadData, loadSavedWorkouts, saveData } from '../utils/storage';
@@ -23,6 +28,10 @@ import {
   localDateKey,
   startOfWeekMonday,
 } from '../utils/date';
+import {
+  countRestDaysInWeekExcluding,
+  restDaysAllowedPerWeek,
+} from '../utils/restDays';
 import {
   exerciseSummaryLines,
   getScheduledWorkoutSegments,
@@ -37,6 +46,7 @@ import {
 
 const STATUS_COL_W = 28;
 
+/** True when every non-header, progress-counting task in the slice is completed. */
 function segmentAllExercisesComplete(slice: Task[]): boolean {
   const required = slice.filter(
     (t) => !isWorkoutSectionHeader(t.name) && taskCountsTowardDailyProgress(t),
@@ -44,6 +54,7 @@ function segmentAllExercisesComplete(slice: Task[]): boolean {
   return required.length > 0 && required.every((t) => t.completed);
 }
 
+/** Seven local dates starting Monday of the week containing `anchor`, with display headings. */
 function getWeekDaySlots(anchor: Date): { dateKey: string; heading: string }[] {
   const start = startOfWeekMonday(anchor);
   const slots: { dateKey: string; heading: string }[] = [];
@@ -62,6 +73,7 @@ function getWeekDaySlots(anchor: Date): { dateKey: string; heading: string }[] {
   return slots;
 }
 
+/** One row in the week list: section title or exercise with summary lines and completion glyph. */
 function WorkoutLine({
   task,
   showDividerBelow = true,
@@ -117,6 +129,7 @@ function WorkoutLine({
   );
 }
 
+/** Swipeable scheduled block for a day: deletes task index range when user confirms swipe. */
 function ScheduledWorkoutBlock({
   dateKey,
   tasks,
@@ -204,8 +217,10 @@ function ScheduledWorkoutBlock({
   );
 }
 
+/** Main week planner screen: owns loaded `days`, week paging, and add-workout modal state. */
 export default function WeeklyScreen() {
   const tabBarHeight = useBottomTabBarHeight();
+  const { workoutsPerWeek } = useUserPrefs();
   const [days, setDays] = useState<Day[]>([]);
   const [savedWorkouts, setSavedWorkouts] = useState<SavedWorkout[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,6 +228,12 @@ export default function WeeklyScreen() {
   const [pickerForDate, setPickerForDate] = useState<string | null>(null);
 
   const weekSlots = useMemo(() => getWeekDaySlots(weekAnchor), [weekAnchor]);
+
+  const weekMondayKey = weekSlots[0]?.dateKey ?? '';
+  const restBudget = useMemo(
+    () => restDaysAllowedPerWeek(workoutsPerWeek),
+    [workoutsPerWeek],
+  );
 
   const weekLabel = useMemo(() => {
     const first = weekSlots[0]?.dateKey;
@@ -266,8 +287,13 @@ export default function WeeklyScreen() {
       setPickerForDate(null);
       return;
     }
-    const newTasks = savedWorkoutToTasks(w);
     const loaded = await loadData();
+    const existing = loaded.find((d) => d.date === dateKey);
+    if (existing?.restDay === true) {
+      setPickerForDate(null);
+      return;
+    }
+    const newTasks = savedWorkoutToTasks(w);
     const idx = loaded.findIndex((d) => d.date === dateKey);
     const next = [...loaded];
 
@@ -281,6 +307,52 @@ export default function WeeklyScreen() {
     await saveData(next);
     setDays(next);
     setPickerForDate(null);
+  };
+
+  const setRestDayForDate = async (dateKey: string, marking: boolean) => {
+    if (isPastLocalDateKey(dateKey) || !weekMondayKey) {
+      return;
+    }
+    const loaded = await loadData();
+    const idx = loaded.findIndex((d) => d.date === dateKey);
+
+    if (marking) {
+      const usedExcl = countRestDaysInWeekExcluding(loaded, weekMondayKey, dateKey);
+      if (usedExcl >= restBudget) {
+        return;
+      }
+      const next = [...loaded];
+      if (idx < 0) {
+        next.push({
+          date: dateKey,
+          tasks: [],
+          restDay: true,
+        });
+      } else {
+        const day = next[idx] as Day;
+        next[idx] = {
+          ...day,
+          restDay: true,
+          tasks: [],
+          workoutStartedAtMs: undefined,
+        };
+      }
+      await saveData(next);
+      setDays(next);
+      return;
+    }
+
+    if (idx < 0) {
+      return;
+    }
+    const day = loaded[idx] as Day;
+    if (day.restDay !== true) {
+      return;
+    }
+    const next = [...loaded];
+    next[idx] = { ...day, restDay: false };
+    await saveData(next);
+    setDays(next);
   };
 
   const pickerHeading = pickerForDate
@@ -307,16 +379,43 @@ export default function WeeklyScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.sub}>
-          This week ({weekLabel}). Past days are view-only. Swipe a workout left to
-          remove it. Add from the Workouts tab on today or future days.
+          This week ({weekLabel}). Target {workoutsPerWeek} workout
+          {workoutsPerWeek === 1 ? '' : 's'}/week → {restBudget} rest day
+          {restBudget === 1 ? '' : 's'} to place. Past days are view-only. Swipe a
+          workout left to remove it. Add workouts on today or future days that are not
+          rest days.
         </Text>
 
         {weekSlots.map(({ dateKey, heading }) => {
           const day = byDate.get(dateKey);
           const tasks = day?.tasks ?? [];
+          const isRestDay = day?.restDay === true;
           const weightNote =
             day?.weight != null ? `Weight: ${day.weight} lb` : null;
           const dayLocked = isPastLocalDateKey(dateKey);
+          const usedExcl = countRestDaysInWeekExcluding(days, weekMondayKey, dateKey);
+          const canMarkRest =
+            !dayLocked && !isRestDay && usedExcl < restBudget && restBudget > 0;
+          const addWorkoutLocked = dayLocked || isRestDay;
+
+          let restBtnLabel: string;
+          if (dayLocked) {
+            restBtnLabel = isRestDay ? 'Rest day' : 'Rest day (locked)';
+          } else if (isRestDay) {
+            restBtnLabel = 'Remove rest day';
+          } else if (restBudget <= 0) {
+            restBtnLabel = 'No rest days';
+          } else if (!canMarkRest) {
+            restBtnLabel = 'Rest days used';
+          } else {
+            restBtnLabel = 'Rest day';
+          }
+
+          const restBtnDisabled = dayLocked
+            ? true
+            : isRestDay
+              ? false
+              : restBudget <= 0 || !canMarkRest;
 
           return (
             <View key={dateKey} style={styles.dayCard}>
@@ -325,14 +424,21 @@ export default function WeeklyScreen() {
                 <Text style={styles.dayKey}>{dateKey}</Text>
               </View>
               {dayLocked ? (
-                <Text style={styles.pastHint}>Past — schedule and removals locked</Text>
+                <Text style={styles.pastHint}>Past — schedule, rest days, and removals locked</Text>
+              ) : null}
+              {isRestDay && !dayLocked ? (
+                <Text style={styles.restDayHint}>
+                  Rest day — no workouts this date. Counts toward your streak.
+                </Text>
               ) : null}
               {weightNote ? (
                 <Text style={styles.weightHint}>{weightNote}</Text>
               ) : null}
 
               <View style={styles.workoutList}>
-                {tasks.length === 0 ? (
+                {isRestDay ? (
+                  <Text style={styles.empty}>No workouts (recovery).</Text>
+                ) : tasks.length === 0 ? (
                   <Text style={styles.empty}>No workouts scheduled yet.</Text>
                 ) : (
                   getScheduledWorkoutSegments(tasks).map((seg) => (
@@ -349,25 +455,65 @@ export default function WeeklyScreen() {
                 )}
               </View>
 
-              <Pressable
-                disabled={dayLocked}
-                onPress={() => {
-                  if (!isPastLocalDateKey(dateKey)) {
-                    setPickerForDate(dateKey);
-                  }
-                }}
-                style={({ pressed }) => [
-                  styles.pickBtn,
-                  dayLocked && styles.pickBtnDisabled,
-                  pressed && !dayLocked && styles.pickBtnPressed,
-                ]}
-              >
-                <Text
-                  style={[styles.pickBtnText, dayLocked && styles.pickBtnTextDisabled]}
+              <View style={styles.pickBtnRow}>
+                <Pressable
+                  disabled={addWorkoutLocked}
+                  onPress={() => {
+                    if (!addWorkoutLocked) {
+                      setPickerForDate(dateKey);
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.pickBtn,
+                    styles.pickBtnFlex,
+                    addWorkoutLocked && styles.pickBtnDisabled,
+                    pressed && !addWorkoutLocked && styles.pickBtnPressed,
+                  ]}
                 >
-                  {dayLocked ? 'Add workout (locked)' : 'Add workout'}
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.pickBtnText,
+                      addWorkoutLocked && styles.pickBtnTextDisabled,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {dayLocked
+                      ? 'Add workout (locked)'
+                      : isRestDay
+                        ? 'Add workout (rest day)'
+                        : 'Add workout'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  disabled={restBtnDisabled}
+                  onPress={() => {
+                    if (dayLocked) {
+                      return;
+                    }
+                    if (isRestDay) {
+                      void setRestDayForDate(dateKey, false);
+                    } else if (canMarkRest) {
+                      void setRestDayForDate(dateKey, true);
+                    }
+                  }}
+                  style={({ pressed }) => [
+                    styles.pickBtn,
+                    styles.pickBtnFlex,
+                    restBtnDisabled && styles.pickBtnDisabled,
+                    pressed && !restBtnDisabled && styles.pickBtnPressed,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.pickBtnText,
+                      restBtnDisabled && styles.pickBtnTextDisabled,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {restBtnLabel}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           );
         })}
@@ -601,14 +747,34 @@ const styles = StyleSheet.create({
     color: V.textDim,
     lineHeight: 20,
   },
+  pickBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    gap: 12,
+    alignSelf: 'stretch',
+    marginTop: 4,
+  },
+  pickBtnFlex: {
+    flex: 1,
+    minWidth: 0,
+    alignSelf: 'stretch',
+  },
+  restDayHint: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: V.accentMuted,
+    marginBottom: 6,
+  },
   pickBtn: {
-    alignSelf: 'center',
     backgroundColor: V.accent,
     paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 12,
     borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,
     borderColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pickBtnPressed: {
     opacity: 0.85,

@@ -1,3 +1,7 @@
+/**
+ * Calendar utilities for journal keys and week boundaries.
+ * Always prefer `localDateKey` for new data so "today" matches the device timezone.
+ */
 import type { Day } from '../types';
 
 /** Local calendar date as YYYY-MM-DD (avoids UTC drift from toISOString). */
@@ -40,6 +44,7 @@ export function resolveTodayDay(days: Day[], now: Date = new Date()): TodayResol
   return { index: -1, day: undefined, primaryDateKey };
 }
 
+/** Parses `YYYY-MM-DD` as a local midnight Date (not UTC). */
 export function parseDateKeyLocal(key: string): Date {
   const [y, m, d] = key.split('-').map((x) => parseInt(x, 10));
   return new Date(y, m - 1, d);

@@ -1,3 +1,4 @@
+/** Expo template demo: small animated greeting (unused in Vinland main tabs). */
 import Animated from 'react-native-reanimated';
 
 export function HelloWave() {

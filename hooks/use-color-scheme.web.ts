@@ -1,3 +1,6 @@
+/**
+ * Web hydration-safe color scheme hook: avoids light-mode flash before RN paints.
+ */
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

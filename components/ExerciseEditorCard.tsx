@@ -1,3 +1,6 @@
+/**
+ * Large form card for one exercise in `WorkoutFormScreen` (kind switcher, phases, circuit stations).
+ */
 import React from 'react';
 import {
   Pressable,

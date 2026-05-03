@@ -1,3 +1,8 @@
+/**
+ * Pure state machine for time-based strength/cardio interval exercises:
+ * advances working phases, optional rest between sets, and all sets until `finished`.
+ * `TimerScreen` drives `workoutTimerTick` once per second while `running`.
+ */
 import type { ExerciseDefinition } from '../types';
 
 export type WorkoutTimerState = {
@@ -10,6 +15,10 @@ export type WorkoutTimerState = {
   secondsLeft: number;
 };
 
+/**
+ * True when the exercise uses timed working phases with positive durations
+ * (eligible for this interval timer UI).
+ */
 export function isTimedExercise(
   ex: ExerciseDefinition | undefined | null,
 ): ex is ExerciseDefinition {
@@ -23,6 +32,7 @@ export function isTimedExercise(
   return phases.every((p) => Number(p.durationSeconds) > 0);
 }
 
+/** Initial state: paused at first phase of set 0 with full phase duration. */
 export function createWorkoutTimerState(ex: ExerciseDefinition): WorkoutTimerState {
   const phases = ex.workingPhases;
   const first = phases[0];
@@ -37,7 +47,9 @@ export function createWorkoutTimerState(ex: ExerciseDefinition): WorkoutTimerSta
   };
 }
 
-/** One second elapsed while running. */
+/**
+ * One second elapsed while running: decrements `secondsLeft` or advances phase/set/rest.
+ */
 export function workoutTimerTick(state: WorkoutTimerState): WorkoutTimerState {
   if (!state.running || state.finished) {
     return state;
@@ -48,6 +60,10 @@ export function workoutTimerTick(state: WorkoutTimerState): WorkoutTimerState {
   return advanceSegment(state);
 }
 
+/**
+ * Transition at end of a second when the current block hits zero:
+ * next phase, rest between sets, next set, or `finished` on last phase of last set.
+ */
 function advanceSegment(state: WorkoutTimerState): WorkoutTimerState {
   const ex = state.exercise;
   const phases = ex.workingPhases;
@@ -94,7 +110,7 @@ function advanceSegment(state: WorkoutTimerState): WorkoutTimerState {
   };
 }
 
-/** Full duration of the current work or rest block (for progress UI). */
+/** Full duration of the current work phase or rest block (for ring progress UI). */
 export function getSegmentDurationSeconds(state: WorkoutTimerState): number {
   if (state.finished) {
     return 1;
@@ -106,6 +122,7 @@ export function getSegmentDurationSeconds(state: WorkoutTimerState): number {
   return Math.max(1, phase?.durationSeconds ?? 1);
 }
 
+/** MM:SS countdown display helper (not used for multi-hour totals). */
 export function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;

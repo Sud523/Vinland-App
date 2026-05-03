@@ -1,6 +1,9 @@
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
 
+/**
+ * Expo Metro defaults plus Windows workaround for `react-native-svg` `./fabric` resolution.
+ */
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 

@@ -1,3 +1,7 @@
+/**
+ * Today dashboard: loads/creates journal row, workout session timer gates, task checklist,
+ * calorie goal + cheat meal, and one-shot weight entry.
+ */
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -63,6 +67,8 @@ export default function HomeScreen() {
 
   const streak = useMemo(() => currentWorkoutStreak(days, new Date()), [days]);
 
+  const isRestDay = today?.restDay === true;
+
   const calorieHit = today?.calorieGoalHit === true;
 
   useEffect(() => {
@@ -87,7 +93,8 @@ export default function HomeScreen() {
   const workoutActive = today?.workoutStartedAtMs != null;
   const hasEndedWorkoutSessionToday =
     (today?.workoutSessionDurationsSeconds?.length ?? 0) > 0;
-  const canToggleExercises = workoutActive || hasEndedWorkoutSessionToday;
+  const canToggleExercises =
+    !isRestDay && (workoutActive || hasEndedWorkoutSessionToday);
 
   useEffect(() => {
     if (!workoutActive) {
@@ -225,7 +232,7 @@ export default function HomeScreen() {
   };
 
   const handleToggleTask = (taskIndex: number) => {
-    if (!today || todayIndex < 0) {
+    if (!today || todayIndex < 0 || isRestDay) {
       return;
     }
     if (!canToggleExercises) {
@@ -240,7 +247,7 @@ export default function HomeScreen() {
   };
 
   const handleStartWorkout = () => {
-    if (!today || todayIndex < 0 || today.workoutStartedAtMs != null) {
+    if (!today || todayIndex < 0 || today.workoutStartedAtMs != null || isRestDay) {
       return;
     }
     const next = [...days];
@@ -249,7 +256,12 @@ export default function HomeScreen() {
   };
 
   const handleEndWorkout = () => {
-    if (!today || todayIndex < 0 || today.workoutStartedAtMs == null) {
+    if (
+      !today ||
+      todayIndex < 0 ||
+      today.workoutStartedAtMs == null ||
+      isRestDay
+    ) {
       return;
     }
     const durationSec = Math.max(
@@ -336,56 +348,66 @@ export default function HomeScreen() {
 
         <View style={styles.workoutCard}>
           <Text style={styles.cardTitle}>Today&apos;s workout</Text>
-          <View style={styles.workoutControlsRow}>
-            <Pressable
-              onPress={workoutActive ? handleEndWorkout : handleStartWorkout}
-              style={({ pressed }) => [
-                styles.workoutActionBtn,
-                pressed && styles.workoutActionBtnPressed,
-              ]}
-            >
-              <Text style={styles.workoutActionBtnText}>
-                {workoutActive ? 'End workout' : 'Start workout'}
-              </Text>
-            </Pressable>
-            <Text style={styles.workoutTimer} accessibilityLiveRegion="polite">
-              {formatHms(elapsedWorkoutSeconds)}
-            </Text>
-          </View>
-          {!canToggleExercises && today.tasks.length > 0 ? (
-            <Text style={styles.workoutGateHint}>
-              Start your workout to check off exercises.
-            </Text>
-          ) : null}
-
-          {today.tasks.length === 0 ? (
-            <Text style={styles.emptyWorkout}>
-              Nothing scheduled for today. Open the Week tab and add a saved
-              workout to this date.
+          {isRestDay ? (
+            <Text style={styles.restDayBody}>
+              Rest day — no workout planned. This still counts toward your streak. To
+              schedule training instead, open the Week tab and remove the rest day for
+              today.
             </Text>
           ) : (
             <>
-              {exerciseTotal > 0 ? (
-                <>
-                  <Text style={styles.progressLabel}>
-                    {exercisesDone} of {exerciseTotal} exercises done
+              <View style={styles.workoutControlsRow}>
+                <Pressable
+                  onPress={workoutActive ? handleEndWorkout : handleStartWorkout}
+                  style={({ pressed }) => [
+                    styles.workoutActionBtn,
+                    pressed && styles.workoutActionBtnPressed,
+                  ]}
+                >
+                  <Text style={styles.workoutActionBtnText}>
+                    {workoutActive ? 'End workout' : 'Start workout'}
                   </Text>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[styles.progressFill, { width: `${progressPct}%` }]}
-                    />
-                  </View>
-                </>
+                </Pressable>
+                <Text style={styles.workoutTimer} accessibilityLiveRegion="polite">
+                  {formatHms(elapsedWorkoutSeconds)}
+                </Text>
+              </View>
+              {!canToggleExercises && today.tasks.length > 0 ? (
+                <Text style={styles.workoutGateHint}>
+                  Start your workout to check off exercises.
+                </Text>
               ) : null}
-              {today.tasks.map((task, index) => (
-                <TodayTaskRow
-                  key={`${task.name}-${index}`}
-                  task={task}
-                  isFirstRow={index === 0}
-                  exercisesLocked={!canToggleExercises}
-                  onToggle={() => handleToggleTask(index)}
-                />
-              ))}
+
+              {today.tasks.length === 0 ? (
+                <Text style={styles.emptyWorkout}>
+                  Nothing scheduled for today. Open the Week tab and add a saved workout
+                  to this date (or mark a rest day).
+                </Text>
+              ) : (
+                <>
+                  {exerciseTotal > 0 ? (
+                    <>
+                      <Text style={styles.progressLabel}>
+                        {exercisesDone} of {exerciseTotal} exercises done
+                      </Text>
+                      <View style={styles.progressTrack}>
+                        <View
+                          style={[styles.progressFill, { width: `${progressPct}%` }]}
+                        />
+                      </View>
+                    </>
+                  ) : null}
+                  {today.tasks.map((task, index) => (
+                    <TodayTaskRow
+                      key={`${task.name}-${index}`}
+                      task={task}
+                      isFirstRow={index === 0}
+                      exercisesLocked={!canToggleExercises}
+                      onToggle={() => handleToggleTask(index)}
+                    />
+                  ))}
+                </>
+              )}
             </>
           )}
         </View>
@@ -454,6 +476,7 @@ export default function HomeScreen() {
   );
 }
 
+/** Renders a section divider row or an interactive `TaskItem` on the Home checklist. */
 function TodayTaskRow({
   task,
   isFirstRow,
@@ -568,6 +591,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: V.text,
     marginBottom: 12,
+  },
+  restDayBody: {
+    fontSize: 15,
+    color: V.textSecondary,
+    lineHeight: 22,
   },
   workoutControlsRow: {
     flexDirection: 'row',

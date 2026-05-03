@@ -1,3 +1,7 @@
+/**
+ * React context bridging user-visible profile fields to AsyncStorage (`displayName`, profile prefs, onboarding).
+ * Exposes async setters so screens can persist without duplicating key names.
+ */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
@@ -39,6 +43,10 @@ type UserPrefsContextValue = {
 
 const UserPrefsContext = createContext<UserPrefsContextValue | null>(null);
 
+/**
+ * Merges persisted profile fields on startup and handles migration when an old user has
+ * a name but no onboarding step key (marks onboarding complete once).
+ */
 async function hydratePrefs(): Promise<{
   displayName: string | null;
   workoutsPerWeek: number;
@@ -73,6 +81,7 @@ async function hydratePrefs(): Promise<{
   };
 }
 
+/** Subtree provider: loads prefs once, exposes setters that mirror writes to AsyncStorage. */
 export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
   const [displayName, setDisplayNameState] = useState<string | null>(null);
   const [workoutsPerWeek, setWorkoutsPerWeekState] = useState(
@@ -233,6 +242,7 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Must run under `UserPrefsProvider`; returns the full prefs API surface. */
 export function useUserPrefs(): UserPrefsContextValue {
   const ctx = useContext(UserPrefsContext);
   if (ctx == null) {

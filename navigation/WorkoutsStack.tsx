@@ -1,3 +1,6 @@
+/**
+ * Native stack over the workout library list and create/edit form (`WorkoutForm`).
+ */
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Platform, StyleSheet } from 'react-native';
 

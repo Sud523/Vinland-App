@@ -1,3 +1,7 @@
+/**
+ * Read-only analytics over `Day[]`: task completion aggregates, workout streak logic,
+ * calorie-goal streaks, and cleanup of abandoned "workout in progress" flags.
+ */
 import type { Day } from '../types';
 
 import { localDateKey } from './date';
@@ -12,7 +16,10 @@ export function formatHms(totalSeconds: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-/** Drop in-progress workout flags from calendar days before today (abandoned sessions). */
+/**
+ * Clears `workoutStartedAtMs` on days strictly before today so abandoned sessions
+ * don't show as in-progress forever.
+ */
 export function clearStaleWorkoutInProgress(days: Day[], now: Date = new Date()): Day[] {
   const todayKey = localDateKey(now);
   return days.map((d) => {
@@ -23,6 +30,7 @@ export function clearStaleWorkoutInProgress(days: Day[], now: Date = new Date())
   });
 }
 
+/** Sums all recorded ended-session durations and counts sessions for averaging. */
 function collectWorkoutSessionSeconds(days: Day[]): { sum: number; count: number } {
   let sum = 0;
   let count = 0;
@@ -49,6 +57,9 @@ function collectWorkoutSessionSeconds(days: Day[]): { sum: number; count: number
 export function dayQualifiesForStreak(day: Day | undefined): boolean {
   if (!day) {
     return false;
+  }
+  if (day.restDay === true) {
+    return true;
   }
   const required = day.tasks.filter(taskCountsTowardDailyProgress);
   if (required.length > 0) {
@@ -81,6 +92,7 @@ export type StatsSummary = {
   workoutSessionCount: number;
 };
 
+/** Computes summary metrics over the full journal (sorts by date for streak scan). */
 export function computeStats(days: Day[]): StatsSummary {
   let totalTasks = 0;
   let completedTasks = 0;
@@ -98,7 +110,7 @@ export function computeStats(days: Day[]): StatsSummary {
     if (d.weight != null && Number.isFinite(d.weight)) {
       weights.push(d.weight);
     }
-    if (n > 0 || d.weight != null) {
+    if (n > 0 || d.weight != null || d.restDay === true) {
       daysWithActivity += 1;
     }
   }
@@ -141,8 +153,9 @@ export function computeStats(days: Day[]): StatsSummary {
 }
 
 /**
- * Consecutive days with ≥1 completed task. If today has none yet, counts backward
- * from yesterday so the streak doesn’t drop to zero before you train.
+ * Consecutive days with ≥1 qualifying completed work (see `dayQualifiesForStreak`).
+ * If today has not qualified yet, counts backward from yesterday so the streak
+ * doesn’t drop to zero before you train.
  */
 export function currentWorkoutStreak(days: Day[], now: Date = new Date()): number {
   const byDate = new Map(days.map((d) => [d.date, d]));
