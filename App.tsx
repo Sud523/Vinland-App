@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FirstLaunchOnboarding } from './components/FirstLaunchOnboarding';
 import { LocalDataMigrationGate } from './components/LocalDataMigrationGate';
+import { RootErrorBoundary } from './components/RootErrorBoundary';
 import { OutlinedNavBackButton } from './components/OutlinedNavBackButton';
 import { UserPrefsProvider } from './context/UserPrefsContext';
 import { V } from './constants/vinlandTheme';
@@ -44,6 +45,14 @@ const navTheme: Theme = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  return (
+    <RootErrorBoundary>
+      <AppBootstrap />
+    </RootErrorBoundary>
+  );
+}
+
+function AppBootstrap() {
   if (!isSupabaseConfigured) {
     return <SupabaseConfigErrorScreen />;
   }
