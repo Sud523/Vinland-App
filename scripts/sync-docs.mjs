@@ -8,7 +8,7 @@
  * Usage: `npm run export:docs`
  */
 import { execSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,4 +52,10 @@ rmSync(docs, { recursive: true, force: true });
 mkdirSync(docs, { recursive: true });
 cpSync(dist, docs, { recursive: true });
 
-console.log('Synced dist/ → docs/ for GitHub Pages.');
+/*
+  GitHub Pages runs Jekyll by default; it does NOT publish paths starting with `_`.
+  Expo web output lives under `docs/_expo/` — without this file the JS bundle 404s and
+  the site shows a blank white page while HTML still loads.
+*/
+writeFileSync(join(docs, '.nojekyll'), '');
+console.log('Synced dist/ → docs/ for GitHub Pages (wrote docs/.nojekyll for underscore paths).');

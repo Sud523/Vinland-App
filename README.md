@@ -163,6 +163,8 @@ Regenerates static output into `docs/`. Commit source + `docs/` when publishing.
 
 **Environment:** Expo inlines `EXPO_PUBLIC_*` variables **when the bundle is built**. The `export:docs` script loads your repo-root **`.env`** into the process before running `expo export`, so keys end up in `docs/` like they do in dev. If you export without those variables (e.g. CI with no secrets), the deployed site would miss Supabase config—the app now shows an on-screen “Configuration missing” message instead of a blank white page.
 
+**GitHub Pages + `_expo`:** The export script always writes **`docs/.nojekyll`**. Without it, GitHub’s Jekyll build **omits** folders whose names start with `_`, so `docs/_expo/...` never deploys and the app JS returns 404 (white screen with loaded HTML). Re-run `npm run export:docs` and commit `docs/` including `.nojekyll`.
+
 #### Hard refresh and saved data (web)
 
 Journal and library data load from **Supabase** after login; session tokens persist in browser storage (via the Supabase client). Clearing site data logs you out and clears local session state.
