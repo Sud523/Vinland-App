@@ -1,8 +1,6 @@
 /**
- * React context bridging user-visible profile fields to AsyncStorage (`displayName`, profile prefs, onboarding).
- * Exposes async setters so screens can persist without duplicating key names.
+ * Profile + onboarding from Supabase `profiles` (1:1 with auth user).
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   createContext,
   useCallback,
@@ -12,17 +10,12 @@ import React, {
   useState,
 } from 'react';
 
+import { useAuth } from './AuthContext';
+import { supabase } from '../utils/supabase';
 import {
   DEFAULT_PROFILE_PREFS,
-  loadDisplayName,
-  loadOnboardingComplete,
-  loadProfilePrefs,
-  ONBOARDING_STEP_STORAGE_KEY,
   type ActivityLevel,
   type ProfilePrefs,
-  saveDisplayName,
-  saveOnboardingComplete,
-  saveProfilePrefs,
 } from '../utils/storage';
 
 type UserPrefsContextValue = {
@@ -31,58 +24,54 @@ type UserPrefsContextValue = {
   activityLevel: ActivityLevel;
   dailyCalorieGoal: number;
   onboardingComplete: boolean;
+  onboardingStep: number;
   prefsLoaded: boolean;
+  localDataMigratedAt: string | null;
   setDisplayName: (name: string) => Promise<void>;
   setWorkoutsPerWeek: (n: number) => Promise<void>;
   setActivityLevel: (level: ActivityLevel) => Promise<void>;
   setDailyCalorieGoal: (calories: number) => Promise<void>;
   updateProfilePrefs: (partial: Partial<ProfilePrefs>) => Promise<void>;
   setOnboardingComplete: (complete: boolean) => Promise<void>;
-  refreshFromStorage: () => Promise<void>;
+  setOnboardingStep: (step: number) => Promise<void>;
+  clearOnboardingStep: () => Promise<void>;
+  refreshFromProfile: () => Promise<void>;
+  markLocalDataMigrated: () => Promise<void>;
 };
 
 const UserPrefsContext = createContext<UserPrefsContextValue | null>(null);
 
-/**
- * Merges persisted profile fields on startup and handles migration when an old user has
- * a name but no onboarding step key (marks onboarding complete once).
- */
-async function hydratePrefs(): Promise<{
-  displayName: string | null;
-  workoutsPerWeek: number;
-  activityLevel: ActivityLevel;
-  dailyCalorieGoal: number;
-  onboardingComplete: boolean;
-}> {
-  const [name, profile, onboarded, stepRaw] = await Promise.all([
-    loadDisplayName(),
-    loadProfilePrefs(),
-    loadOnboardingComplete(),
-    AsyncStorage.getItem(ONBOARDING_STEP_STORAGE_KEY),
-  ]);
+type ProfileRow = {
+  display_name: string | null;
+  workouts_per_week: number;
+  activity_level: ActivityLevel;
+  daily_calorie_goal: number;
+  onboarding_complete: boolean;
+  onboarding_step: number;
+  local_data_migrated_at: string | null;
+};
 
-  let onboardingComplete = onboarded;
-
-  if (!onboardingComplete && name != null && stepRaw == null) {
-    await saveOnboardingComplete(true);
-    const p = profile ?? DEFAULT_PROFILE_PREFS;
-    await saveProfilePrefs(p);
-    onboardingComplete = true;
-  }
-
-  const mergedProfile = profile ?? DEFAULT_PROFILE_PREFS;
-
+function rowToState(row: ProfileRow) {
+  const mergedPrefs = {
+    workoutsPerWeek: row.workouts_per_week ?? DEFAULT_PROFILE_PREFS.workoutsPerWeek,
+    activityLevel: (row.activity_level ?? DEFAULT_PROFILE_PREFS.activityLevel) as ActivityLevel,
+    dailyCalorieGoal: row.daily_calorie_goal ?? DEFAULT_PROFILE_PREFS.dailyCalorieGoal,
+  };
   return {
-    displayName: name,
-    workoutsPerWeek: mergedProfile.workoutsPerWeek,
-    activityLevel: mergedProfile.activityLevel,
-    dailyCalorieGoal: mergedProfile.dailyCalorieGoal,
-    onboardingComplete,
+    displayName: row.display_name?.trim() ? row.display_name.trim() : null,
+    workoutsPerWeek: mergedPrefs.workoutsPerWeek,
+    activityLevel: mergedPrefs.activityLevel,
+    dailyCalorieGoal: mergedPrefs.dailyCalorieGoal,
+    onboardingComplete: row.onboarding_complete === true,
+    onboardingStep: Math.min(4, Math.max(0, row.onboarding_step ?? 0)),
+    localDataMigratedAt: row.local_data_migrated_at,
   };
 }
 
-/** Subtree provider: loads prefs once, exposes setters that mirror writes to AsyncStorage. */
 export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const uid = user?.id ?? null;
+
   const [displayName, setDisplayNameState] = useState<string | null>(null);
   const [workoutsPerWeek, setWorkoutsPerWeekState] = useState(
     DEFAULT_PROFILE_PREFS.workoutsPerWeek,
@@ -94,115 +83,151 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
     DEFAULT_PROFILE_PREFS.dailyCalorieGoal,
   );
   const [onboardingComplete, setOnboardingCompleteState] = useState(false);
+  const [onboardingStep, setOnboardingStepState] = useState(0);
+  const [localDataMigratedAt, setLocalDataMigratedAt] = useState<string | null>(null);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
-  const refreshFromStorage = useCallback(async () => {
-    const h = await hydratePrefs();
-    setDisplayNameState(h.displayName);
-    setWorkoutsPerWeekState(h.workoutsPerWeek);
-    setActivityLevelState(h.activityLevel);
-    setDailyCalorieGoalState(h.dailyCalorieGoal);
-    setOnboardingCompleteState(h.onboardingComplete);
-  }, []);
+  const refreshFromProfile = useCallback(async () => {
+    if (uid == null) {
+      return;
+    }
+    const { data: row, error } = await supabase
+      .from('profiles')
+      .select(
+        'display_name, workouts_per_week, activity_level, daily_calorie_goal, onboarding_complete, onboarding_step, local_data_migrated_at',
+      )
+      .eq('id', uid)
+      .maybeSingle();
+
+    if (error || row == null) {
+      setPrefsLoaded(true);
+      return;
+    }
+
+    const r = row as ProfileRow;
+    const s = rowToState(r);
+    setDisplayNameState(s.displayName);
+    setWorkoutsPerWeekState(s.workoutsPerWeek);
+    setActivityLevelState(s.activityLevel);
+    setDailyCalorieGoalState(s.dailyCalorieGoal);
+    setOnboardingCompleteState(s.onboardingComplete);
+    setOnboardingStepState(s.onboardingStep);
+    setLocalDataMigratedAt(s.localDataMigratedAt);
+    setPrefsLoaded(true);
+  }, [uid]);
 
   useEffect(() => {
+    if (uid == null) {
+      setPrefsLoaded(false);
+      return;
+    }
     let cancelled = false;
-    void hydratePrefs().then((h) => {
-      if (!cancelled) {
-        setDisplayNameState(h.displayName);
-        setWorkoutsPerWeekState(h.workoutsPerWeek);
-        setActivityLevelState(h.activityLevel);
-        setDailyCalorieGoalState(h.dailyCalorieGoal);
-        setOnboardingCompleteState(h.onboardingComplete);
-        setPrefsLoaded(true);
+    void refreshFromProfile().then(() => {
+      if (cancelled) {
+        return;
       }
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [uid, refreshFromProfile]);
 
-  const setDisplayName = useCallback(async (name: string) => {
-    const t = name.trim();
-    if (t.length === 0) {
-      return;
-    }
-    await saveDisplayName(t);
-    setDisplayNameState(t);
-  }, []);
+  const patchProfile = useCallback(
+    async (partial: Record<string, unknown>) => {
+      if (uid == null) {
+        return;
+      }
+      const { error } = await supabase.from('profiles').update(partial).eq('id', uid);
+      if (error) {
+        throw error;
+      }
+      await refreshFromProfile();
+    },
+    [uid, refreshFromProfile],
+  );
 
-  const setWorkoutsPerWeek = useCallback(async (n: number) => {
-    const clamped = Math.min(7, Math.max(1, Math.round(n)));
-    const prev = await loadProfilePrefs();
-    const next: ProfilePrefs = {
-      workoutsPerWeek: clamped,
-      activityLevel: prev?.activityLevel ?? DEFAULT_PROFILE_PREFS.activityLevel,
-      dailyCalorieGoal:
-        prev?.dailyCalorieGoal ?? DEFAULT_PROFILE_PREFS.dailyCalorieGoal,
-    };
-    await saveProfilePrefs(next);
-    setWorkoutsPerWeekState(clamped);
-    setActivityLevelState(next.activityLevel);
-    setDailyCalorieGoalState(next.dailyCalorieGoal);
-  }, []);
+  const setDisplayName = useCallback(
+    async (name: string) => {
+      const t = name.trim();
+      if (t.length === 0) {
+        return;
+      }
+      await patchProfile({ display_name: t });
+    },
+    [patchProfile],
+  );
 
-  const setActivityLevel = useCallback(async (level: ActivityLevel) => {
-    const prev = await loadProfilePrefs();
-    const next: ProfilePrefs = {
-      workoutsPerWeek:
-        prev?.workoutsPerWeek ?? DEFAULT_PROFILE_PREFS.workoutsPerWeek,
-      activityLevel: level,
-      dailyCalorieGoal:
-        prev?.dailyCalorieGoal ?? DEFAULT_PROFILE_PREFS.dailyCalorieGoal,
-    };
-    await saveProfilePrefs(next);
-    setActivityLevelState(level);
-    setWorkoutsPerWeekState(next.workoutsPerWeek);
-    setDailyCalorieGoalState(next.dailyCalorieGoal);
-  }, []);
+  const setWorkoutsPerWeek = useCallback(
+    async (n: number) => {
+      const clamped = Math.min(7, Math.max(1, Math.round(n)));
+      await patchProfile({ workouts_per_week: clamped });
+    },
+    [patchProfile],
+  );
 
-  const setDailyCalorieGoal = useCallback(async (calories: number) => {
-    const clamped = Math.min(20000, Math.max(800, Math.round(calories)));
-    const prev = await loadProfilePrefs();
-    const next: ProfilePrefs = {
-      workoutsPerWeek:
-        prev?.workoutsPerWeek ?? DEFAULT_PROFILE_PREFS.workoutsPerWeek,
-      activityLevel: prev?.activityLevel ?? DEFAULT_PROFILE_PREFS.activityLevel,
-      dailyCalorieGoal: clamped,
-    };
-    await saveProfilePrefs(next);
-    setDailyCalorieGoalState(clamped);
-    setWorkoutsPerWeekState(next.workoutsPerWeek);
-    setActivityLevelState(next.activityLevel);
-  }, []);
+  const setActivityLevel = useCallback(
+    async (level: ActivityLevel) => {
+      await patchProfile({ activity_level: level });
+    },
+    [patchProfile],
+  );
 
-  const updateProfilePrefs = useCallback(async (partial: Partial<ProfilePrefs>) => {
-    const prev = await loadProfilePrefs();
-    const base = prev ?? DEFAULT_PROFILE_PREFS;
-    const next: ProfilePrefs = {
-      workoutsPerWeek: Math.min(
-        7,
-        Math.max(1, Math.round(partial.workoutsPerWeek ?? base.workoutsPerWeek)),
-      ),
-      activityLevel: partial.activityLevel ?? base.activityLevel,
-      dailyCalorieGoal: Math.min(
-        20000,
-        Math.max(
-          800,
-          Math.round(partial.dailyCalorieGoal ?? base.dailyCalorieGoal),
+  const setDailyCalorieGoal = useCallback(
+    async (calories: number) => {
+      const clamped = Math.min(20000, Math.max(800, Math.round(calories)));
+      await patchProfile({ daily_calorie_goal: clamped });
+    },
+    [patchProfile],
+  );
+
+  const updateProfilePrefs = useCallback(
+    async (partial: Partial<ProfilePrefs>) => {
+      const prevW = workoutsPerWeek;
+      const prevA = activityLevel;
+      const prevC = dailyCalorieGoal;
+      const next: ProfilePrefs = {
+        workoutsPerWeek: Math.min(
+          7,
+          Math.max(1, Math.round(partial.workoutsPerWeek ?? prevW)),
         ),
-      ),
-    };
-    await saveProfilePrefs(next);
-    setWorkoutsPerWeekState(next.workoutsPerWeek);
-    setActivityLevelState(next.activityLevel);
-    setDailyCalorieGoalState(next.dailyCalorieGoal);
-  }, []);
+        activityLevel: partial.activityLevel ?? prevA,
+        dailyCalorieGoal: Math.min(
+          20000,
+          Math.max(800, Math.round(partial.dailyCalorieGoal ?? prevC)),
+        ),
+      };
+      await patchProfile({
+        workouts_per_week: next.workoutsPerWeek,
+        activity_level: next.activityLevel,
+        daily_calorie_goal: next.dailyCalorieGoal,
+      });
+    },
+    [patchProfile, workoutsPerWeek, activityLevel, dailyCalorieGoal],
+  );
 
-  const setOnboardingComplete = useCallback(async (complete: boolean) => {
-    await saveOnboardingComplete(complete);
-    setOnboardingCompleteState(complete);
-  }, []);
+  const setOnboardingComplete = useCallback(
+    async (complete: boolean) => {
+      await patchProfile({ onboarding_complete: complete });
+    },
+    [patchProfile],
+  );
+
+  const setOnboardingStep = useCallback(
+    async (step: number) => {
+      const s = Math.min(4, Math.max(0, Math.round(step)));
+      await patchProfile({ onboarding_step: s });
+      setOnboardingStepState(s);
+    },
+    [patchProfile],
+  );
+
+  const clearOnboardingStep = useCallback(async () => {
+    await patchProfile({ onboarding_step: 0 });
+  }, [patchProfile]);
+
+  const markLocalDataMigrated = useCallback(async () => {
+    await patchProfile({ local_data_migrated_at: new Date().toISOString() });
+  }, [patchProfile]);
 
   const value = useMemo(
     () => ({
@@ -211,14 +236,19 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
       activityLevel,
       dailyCalorieGoal,
       onboardingComplete,
+      onboardingStep,
       prefsLoaded,
+      localDataMigratedAt,
       setDisplayName,
       setWorkoutsPerWeek,
       setActivityLevel,
       setDailyCalorieGoal,
       updateProfilePrefs,
       setOnboardingComplete,
-      refreshFromStorage,
+      setOnboardingStep,
+      clearOnboardingStep,
+      refreshFromProfile,
+      markLocalDataMigrated,
     }),
     [
       displayName,
@@ -226,14 +256,19 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
       activityLevel,
       dailyCalorieGoal,
       onboardingComplete,
+      onboardingStep,
       prefsLoaded,
+      localDataMigratedAt,
       setDisplayName,
       setWorkoutsPerWeek,
       setActivityLevel,
       setDailyCalorieGoal,
       updateProfilePrefs,
       setOnboardingComplete,
-      refreshFromStorage,
+      setOnboardingStep,
+      clearOnboardingStep,
+      refreshFromProfile,
+      markLocalDataMigrated,
     ],
   );
 
@@ -242,7 +277,6 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Must run under `UserPrefsProvider`; returns the full prefs API surface. */
 export function useUserPrefs(): UserPrefsContextValue {
   const ctx = useContext(UserPrefsContext);
   if (ctx == null) {

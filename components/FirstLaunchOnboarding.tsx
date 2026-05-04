@@ -17,15 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
-import {
-  clearOnboardingStep,
-  loadData,
-  loadOnboardingStep,
-  loadWeightGoal,
-  saveOnboardingStep,
-  type ActivityLevel,
-  type WeightGoalMode,
-} from '../utils/storage';
+import { loadData, loadWeightGoal, type ActivityLevel, type WeightGoalMode } from '../utils/storage';
 import { commitWeightGoalForMode } from '../utils/weightGoalCommit';
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
@@ -47,11 +39,14 @@ export function FirstLaunchOnboarding() {
     dailyCalorieGoal,
     prefsLoaded,
     onboardingComplete,
+    onboardingStep: savedStep,
     setDisplayName,
     setWorkoutsPerWeek,
     setActivityLevel,
     setDailyCalorieGoal,
     setOnboardingComplete,
+    setOnboardingStep,
+    clearOnboardingStep,
   } = useUserPrefs();
 
   const [step, setStep] = useState(0);
@@ -68,17 +63,9 @@ export function FirstLaunchOnboarding() {
     if (!prefsLoaded || onboardingComplete) {
       return;
     }
-    let cancelled = false;
-    void loadOnboardingStep().then((s) => {
-      if (!cancelled) {
-        setStep(s);
-        setStepReady(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [prefsLoaded, onboardingComplete]);
+    setStep(savedStep);
+    setStepReady(true);
+  }, [prefsLoaded, onboardingComplete, savedStep]);
 
   useEffect(() => {
     if (displayName) {
@@ -131,7 +118,7 @@ export function FirstLaunchOnboarding() {
     setBusy(true);
     try {
       await setDisplayName(t);
-      await saveOnboardingStep(1);
+      await setOnboardingStep(1);
       setStep(1);
     } finally {
       setBusy(false);
@@ -145,7 +132,7 @@ export function FirstLaunchOnboarding() {
     setBusy(true);
     try {
       await setWorkoutsPerWeek(daysPick);
-      await saveOnboardingStep(2);
+      await setOnboardingStep(2);
       setStep(2);
     } finally {
       setBusy(false);
@@ -159,7 +146,7 @@ export function FirstLaunchOnboarding() {
     setBusy(true);
     try {
       await setActivityLevel(activityPick);
-      await saveOnboardingStep(3);
+      await setOnboardingStep(3);
       setStep(3);
     } finally {
       setBusy(false);
@@ -177,7 +164,7 @@ export function FirstLaunchOnboarding() {
     setBusy(true);
     try {
       await setDailyCalorieGoal(n);
-      await saveOnboardingStep(4);
+      await setOnboardingStep(4);
       setStep(4);
     } finally {
       setBusy(false);

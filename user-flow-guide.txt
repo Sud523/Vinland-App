@@ -1,202 +1,128 @@
 ================================================================================
-VINLAND — USER FLOW GUIDE
+VINLAND — USER FLOW GUIDE (Supabase-backed)
 ================================================================================
-This guide walks through how a user moves through the app and what happens on
-the device for each action. There is no cloud backend: "handling" means local
-JavaScript plus AsyncStorage (localStorage on web).
+This guide walks through how a user moves through the app and what happens for
+each action. Persistent state is stored in Supabase (Postgres) via the client;
+legacy AsyncStorage is only used once for migration from older offline builds.
 
 Legend:
-  READ  = load from persistent storage
-  WRITE = save to persistent storage
+  READ  = load from Supabase (or in-memory React state)
+  WRITE = save to Supabase (or profile patch)
   STATE = React in-memory state only (until a WRITE)
+  AUTH  = Supabase Auth session (email/password)
 
 --------------------------------------------------------------------------------
 1. APP LAUNCH
 --------------------------------------------------------------------------------
-• App loads App.tsx → GestureHandlerRootView, SafeAreaProvider, UserPrefsProvider,
+• App loads App.tsx → AuthProvider → (when session exists) UserPrefsProvider →
+  LocalDataMigrationGate → GestureHandlerRootView, SafeAreaProvider,
   NavigationContainer, Main tabs, FirstLaunchOnboarding overlay, StatusBar.
 
-• UserPrefsProvider (READ async, parallel):
-    - loadDisplayName (@vinland_display_name)
-    - loadProfilePrefs (@vinland_profile_prefs)
-    - loadOnboardingComplete (@vinland_onboarding_complete)
-    - ONBOARDING_STEP_STORAGE_KEY (@vinland_onboarding_step)
-  If user had a name saved but no step key, provider auto-marks onboarding
-  complete and saves default profile (migration for older installs).
+• While AuthProvider resolves the session: loading spinner.
 
-• If onboardingComplete is false → FirstLaunchOnboarding modal appears (see §2).
-• Tabs render; the active tab’s screen runs its own READ on focus.
+• If no AUTH session → AuthScreen only (email / password sign-in or sign-up).
+
+• After AUTH:
+    UserPrefsProvider READ `profiles` row for `auth.uid()` (display name, prefs,
+    onboarding_step / onboarding_complete, local_data_migrated_at, etc.).
+
+• LocalDataMigrationGate:
+    - If `profiles.local_data_migrated_at` is null → optional READ legacy
+      AsyncStorage keys; if any data exists, WRITE journal + templates + merged
+      profile fields to Supabase, then WRITE `local_data_migrated_at`, clear
+      legacy keys.
+    - Gate shows a brief spinner until this check finishes so tabs never READ
+      an empty journal while migration is still uploading.
+
+• If onboarding_complete is false → FirstLaunchOnboarding modal (see §2).
+
+• Tabs render; each tab screen runs its own READ on focus (journal / library).
 
 --------------------------------------------------------------------------------
 2. FIRST-LAUNCH ONBOARDING (modal)
 --------------------------------------------------------------------------------
-Steps are persisted with saveOnboardingStep (WRITE @vinland_onboarding_step).
+Steps are persisted with `profiles.onboarding_step` (WRITE via UserPrefsContext).
 
 Typical flow:
-  a) Name → setDisplayName (WRITE name) + local state
-  b) Workouts per week → setWorkoutsPerWeek (READ/merge profile, WRITE prefs)
-  c) Activity level → setActivityLevel (same pattern)
-  d) Daily calories → setDailyCalorieGoal (same pattern)
-  e) Optional: Cutting / Bulking button:
-       - READ loadData, loadWeightGoal
-       - commitWeightGoalForMode → needs a weight log; may READ journal then
-         WRITE @vinland_weight_goal (baseline from latest weight)
-  Finish → setOnboardingComplete(true) (WRITE), clearOnboardingStep (remove key),
-  user lands on main app.
+  a) Name → setDisplayName (WRITE profiles.display_name) + local state
+  b) Workouts per week → setWorkoutsPerWeek (WRITE profiles.workouts_per_week)
+  c) Activity level → setActivityLevel (WRITE profiles.activity_level)
+  d) Daily calories → setDailyCalorieGoal (WRITE profiles.daily_calorie_goal)
+  e) Optional: Cutting / Bulking:
+       - READ loadData (journal), loadWeightGoal (profiles-backed)
+       - commitWeightGoalForMode → WRITE profiles weight_goal_* columns
 
-Backend note: If user has no weight when setting cut/bulk, commit returns error;
-UI prompts to log weight on Home first.
+Finish → clearOnboardingStep (WRITE onboarding_step 0), setOnboardingComplete(true)
+(WRITE onboarding_complete), user lands on main app.
 
 --------------------------------------------------------------------------------
 3. HOME TAB
 --------------------------------------------------------------------------------
 On focus (useFocusEffect):
-  READ loadData (@vinland_days)
-  Ensure today row exists:
-    - resolveTodayDay matches local YYYY-MM-DD first, then UTC key for legacy data
-    - If missing: append { date: today, tasks: [] }, WRITE saveData
-  clearStaleWorkoutInProgress: if workoutStartedAtMs on a day before today,
-    strip it; if changed, WRITE saveData
-  READ loadCheatMealState(currentMondayKey): cheat meal resets weekly;
-    if storage week ≠ current Monday, WRITE refreshed state
-  UI: streak via currentWorkoutStreak(days); progress from tasks that count
-  toward daily progress (not headers, not optional exercises). If today has
-  restDay: true (set on Week), streak still counts that day; workout controls
-  and task list are hidden (see 3h).
+  READ loadData → Supabase journal_days + journal_tasks for user
+  Ensure today row exists (may WRITE saveData if append needed)
+  clearStaleWorkoutInProgress → may WRITE saveData
+  READ loadCheatMealState → profiles cheat_meal_* columns (week rollover may WRITE)
 
-User actions:
+User actions (same product rules as before; persistence is Supabase):
 
-3h) Rest day (read-only on Home)
-  No writes from Home. User sees copy that today is a planned rest day and it
-  counts toward streak. To train, they remove the rest day on the Week tab.
+3h) Rest day — No writes from Home; configured on Week.
 
-3a) Start workout
-  WRITE: set workoutStartedAtMs = Date.now() on today’s Day, saveData
-
-3b) End workout
-  Compute duration vs workoutStartedAtMs; append to workoutSessionDurationsSeconds;
-  clear workoutStartedAtMs; WRITE saveData
-
-3c) Toggle exercise checkbox
-  Only if workout active OR at least one session already ended today (gate).
-  Flip task.completed; WRITE saveData
-
-3d) Hit calorie goal today
-  If not already hit: set calorieGoalHit true, caloriesOver 0; WRITE saveData
-  (Locked afterward for toggling off until next calendar day — UI disables.)
-
-3e) Edit “calories over goal”
-  After goal marked: on blur/submit, parse integer, WRITE caloriesOver on today
-
-3f) Cheat meal this week
-  First toggle true: WRITE saveCheatMealState({ weekStartMonday, used: true })
-  Cannot uncheck; week rolls on Monday via loadCheatMealState
-
-3g) Weight
-  Allowed only if today has no positive weight yet; WRITE weight once, then locked
-
-Nothing on Home edits the workout library; scheduling is from Week tab.
+3a–g) Start/end workout, toggles, calorie goal, cheat meal, weight — WRITE
+saveData or profiles as appropriate.
 
 --------------------------------------------------------------------------------
 4. WEEK TAB
 --------------------------------------------------------------------------------
 On focus: READ loadData, loadSavedWorkouts
 
-Displays Mon–Sun for current anchor week; each day shows tasks from journal.
-
-4a) Add workout to a date (future/today, not a rest day)
-  Opens modal list of saved workouts (from memory after loadSavedWorkouts).
-  Blocked if that Day has restDay true (button disabled; addSavedWorkoutToDay no-op).
-  On pick: READ loadData (fresh), find Day by dateKey or create new Day,
-  append savedWorkoutToTasks(...) to the day’s tasks, WRITE saveData
-
-4b) Rest day (same row as Add workout)
-  Budget per Mon–Sun week: 7 − workoutsPerWeek (from Settings profile).
-  WRITE on the Day row: restDay true, tasks cleared [], workoutStartedAtMs cleared.
-  Cannot add on past days. When budget exhausted, Rest day button is disabled
-  ("Rest days used") unless that date already has restDay (then "Remove rest day").
-  Removing rest: WRITE restDay false.
-  Streak: dayQualifiesForStreak returns true when restDay (see utils/stats).
-
-4c) Swipe to delete a scheduled block
-  Only if day is not past (isPastLocalDateKey) and editing allowed.
-  Computes segment from getScheduledWorkoutSegments, removes index range,
-  WRITE saveData
-
-Past days: UI prevents mutations that change stored schedule.
+Same scheduling / rest-day / swipe-delete behavior as before; all mutations
+WRITE saveData (full journal snapshot pattern).
 
 --------------------------------------------------------------------------------
 5. WORKOUTS TAB (stack)
 --------------------------------------------------------------------------------
-5a) Workouts list screen
-  On focus: READ loadSavedWorkouts
-  Navigate to WorkoutForm for new (no editId) or edit (editId = saved id)
+5a) List screen — READ loadSavedWorkouts on focus.
 
-5b) Workout form screen
-  Local form state for warm up / workout / cool down exercise rows.
-  Save:
-    - sectionedFormsToDefinitions validates
-    - merge into SavedWorkout, replace or append in array
-    - READ loadSavedWorkouts (or use cached), then WRITE saveSavedWorkouts
-  Delete (if editing): filter id out, WRITE saveSavedWorkouts
-
-Library is independent from journal: saving a template does not add it to a day.
+5b) Form screen — Save/delete READ/WRITE saveSavedWorkouts (replaces entire
+library for the user in Supabase).
 
 --------------------------------------------------------------------------------
 6. TIMER TAB
 --------------------------------------------------------------------------------
-On focus: READ loadData
-  Resolves today’s Day; collects tasks where isTimedExercise(task.exercise)
-
-On mount: loadTimerChime (expo-av); on unmount: unloadTimerChime
-
-User picks a timed exercise → createWorkoutTimerState; interval drives
-workoutTimerTick; segment completion may play playTimerChime.
-
-The Timer screen does NOT call saveData. Exercise checkboxes are stored only
-when the user toggles tasks on the Home tab (after using the timer if they want
- those completions recorded).
+On focus: READ loadData for today’s timed tasks. Does not WRITE journal.
 
 --------------------------------------------------------------------------------
 7. STATS TAB
 --------------------------------------------------------------------------------
-On focus: READ loadData + loadWeightGoal (parallel)
-Pure compute: computeStats(days), calorieGoalHitStreak, weight delta vs baseline
-from getLatestWeightEntry + stored WeightGoalState.
-No WRITE on this screen unless future features add exports.
+On focus: READ loadData + loadWeightGoal (profiles). Pure compute; no WRITE.
 
 --------------------------------------------------------------------------------
-8. SETTINGS (root stack, gear from header)
+8. SETTINGS (root stack)
 --------------------------------------------------------------------------------
-On focus: READ loadData + loadWeightGoal (for cut/bulk actions)
+On focus: READ loadData + loadWeightGoal
 
-• Display name save → setDisplayName → WRITE @vinland_display_name
-• Workouts per week / activity / calories → profile prefs WRITE
-• Cut / Bulk → commitWeightGoalForMode(days, currentGoal):
-    READ latest weight from journal data passed in; WRITE @vinland_weight_goal
-    if mode changed and weight exists
+• Display name / prefs → UserPrefs setters → WRITE profiles
 
---------------------------------------------------------------------------------
-9. CROSS-CUTTING: STREAKS AND STATS RULES
---------------------------------------------------------------------------------
-• dayQualifiesForStreak / taskCountsTowardDailyProgress determine which tasks
-  must be completed for workout streak continuation. A day with restDay: true
-  always qualifies for the workout streak.
-• Optional exercises do not count toward that requirement.
-• Section headers (— name —) never count as exercises.
+• Cut / Bulk → commitWeightGoalForMode → WRITE profiles weight_goal_* 
+
+• Sign out → supabase.auth.signOut → AUTH cleared → AuthScreen
 
 --------------------------------------------------------------------------------
-10. SUMMARY TABLE (WHO READS / WRITES WHAT)
+9. STREAKS AND STATS RULES
 --------------------------------------------------------------------------------
-Key                        Main writers
--------------------------  ---------------------------------------------
-@vinland_days              Home, Week, onboarding goal helpers (not Timer)
-@vinland_saved_workouts    WorkoutFormScreen, WorkoutsListScreen (delete flow)
-@vinland_cheat_meal_week   Home
-@vinland_weight_goal       Settings, FirstLaunchOnboarding, weightGoalCommit
-@vinland_display_name      Settings, onboarding, UserPrefsContext
-@vinland_profile_prefs     Settings, onboarding, UserPrefsContext
-@vinland_onboarding_*      FirstLaunchOnboarding, UserPrefsContext migration
+Unchanged — see utils/stats.ts and utils/workouts.ts (in-memory Day[]).
+
+--------------------------------------------------------------------------------
+10. SUMMARY — MAIN SUPABASE TOUCHPOINTS
+--------------------------------------------------------------------------------
+profiles                  Settings, UserPrefsContext, cheat meal, weight goal,
+                          onboarding fields, local_data_migrated_at
+
+journal_days / journal_tasks   Home, Week, onboarding (weight goal path),
+                               Stats, Timer (read-only)
+
+workout_templates (+ sections + exercises)   Workouts list/form, Week scheduling
 
 ================================================================================
 END OF GUIDE

@@ -1,11 +1,14 @@
 /**
- * Single source of truth for AsyncStorage persistence.
- * All journal days, saved workouts, profile, onboarding, cheat meal, and weight-goal
- * keys are defined and accessed here. Callers screens/utils merge and validate domain rules.
+ * Persistent data via Supabase (journal, workout library, weight goal, cheat meal).
+ * Requires an authenticated session (see AuthProvider). Legacy AsyncStorage reads are
+ * exposed only for one-time migration (LocalDataMigration).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Day, SavedWorkout } from '../types';
+import { fetchFullJournal, replaceFullJournal } from './supabase/journalRemote';
+import { fetchSavedWorkouts, replaceSavedWorkouts } from './supabase/workoutsRemote';
+import { supabase } from './supabase';
 import { normalizeSavedWorkout } from './workouts';
 
 const STORAGE_KEY = '@vinland_days';
@@ -15,7 +18,8 @@ const WEIGHT_GOAL_KEY = '@vinland_weight_goal';
 const DISPLAY_NAME_KEY = '@vinland_display_name';
 const PROFILE_PREFS_KEY = '@vinland_profile_prefs';
 const ONBOARDING_COMPLETE_KEY = '@vinland_onboarding_complete';
-/** Exported for UserPrefsContext hydration alongside other parallel loads. */
+
+/** @deprecated Use UserPrefsContext onboarding step from Supabase profiles. */
 export const ONBOARDING_STEP_STORAGE_KEY = '@vinland_onboarding_step';
 
 export type ActivityLevel = 'inactive' | 'active' | 'extremely_active';
@@ -34,7 +38,6 @@ export const DEFAULT_PROFILE_PREFS: ProfilePrefs = {
 
 export type WeightGoalMode = 'lose' | 'gain';
 
-/** Baseline is reset whenever the user sets or changes cut/bulk goal. */
 export type WeightGoalState = {
   mode: WeightGoalMode;
   baselineWeightLb: number;
@@ -46,13 +49,155 @@ export type CheatMealWeekState = {
   used: boolean;
 };
 
-/** Replaces the entire journal array in storage (full snapshot pattern). */
-export async function saveData(days: Day[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+async function requireUserId(): Promise<string> {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || user == null) {
+    throw new Error('Not signed in');
+  }
+  return user.id;
 }
 
-/** Loads all calendar `Day` rows; returns [] if missing or corrupt JSON. */
+/** Optional user id when session not ready (returns null). */
+async function getUserId(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user.id ?? null;
+}
+
+export async function saveData(days: Day[]): Promise<void> {
+  const uid = await requireUserId();
+  await replaceFullJournal(uid, days);
+}
+
 export async function loadData(): Promise<Day[]> {
+  const uid = await getUserId();
+  if (uid == null) {
+    return [];
+  }
+  return fetchFullJournal(uid);
+}
+
+export async function saveSavedWorkouts(workouts: SavedWorkout[]): Promise<void> {
+  const uid = await requireUserId();
+  await replaceSavedWorkouts(uid, workouts);
+}
+
+export async function loadSavedWorkouts(): Promise<SavedWorkout[]> {
+  const uid = await getUserId();
+  if (uid == null) {
+    return [];
+  }
+  return fetchSavedWorkouts(uid);
+}
+
+export async function loadCheatMealState(currentMondayKey: string): Promise<CheatMealWeekState> {
+  const uid = await getUserId();
+  if (uid == null) {
+    return { weekStartMonday: currentMondayKey, used: false };
+  }
+
+  const { data: row, error } = await supabase
+    .from('profiles')
+    .select('cheat_meal_week_start_monday, cheat_meal_used')
+    .eq('id', uid)
+    .maybeSingle();
+
+  if (error || row == null) {
+    return { weekStartMonday: currentMondayKey, used: false };
+  }
+
+  const storedMonday =
+    row.cheat_meal_week_start_monday != null
+      ? String(row.cheat_meal_week_start_monday).slice(0, 10)
+      : null;
+
+  if (storedMonday !== currentMondayKey) {
+    const fresh: CheatMealWeekState = {
+      weekStartMonday: currentMondayKey,
+      used: false,
+    };
+    await saveCheatMealState(fresh);
+    return fresh;
+  }
+
+  return {
+    weekStartMonday: currentMondayKey,
+    used: row.cheat_meal_used === true,
+  };
+}
+
+export async function saveCheatMealState(state: CheatMealWeekState): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      cheat_meal_week_start_monday: state.weekStartMonday,
+      cheat_meal_used: state.used,
+    })
+    .eq('id', uid);
+  if (error) {
+    throw error;
+  }
+}
+
+export async function loadWeightGoal(): Promise<WeightGoalState | null> {
+  const uid = await getUserId();
+  if (uid == null) {
+    return null;
+  }
+
+  const { data: row, error } = await supabase
+    .from('profiles')
+    .select('weight_goal_mode, baseline_weight_lb, baseline_date')
+    .eq('id', uid)
+    .maybeSingle();
+
+  if (error || row == null) {
+    return null;
+  }
+  if (
+    row.weight_goal_mode !== 'lose' &&
+    row.weight_goal_mode !== 'gain' &&
+    row.weight_goal_mode != null
+  ) {
+    return null;
+  }
+  if (
+    row.weight_goal_mode == null ||
+    row.baseline_weight_lb == null ||
+    row.baseline_date == null
+  ) {
+    return null;
+  }
+
+  const dateKey =
+    typeof row.baseline_date === 'string'
+      ? row.baseline_date.slice(0, 10)
+      : String(row.baseline_date).slice(0, 10);
+
+  return {
+    mode: row.weight_goal_mode,
+    baselineWeightLb: row.baseline_weight_lb,
+    baselineDateKey: dateKey,
+  };
+}
+
+export async function saveWeightGoal(state: WeightGoalState): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      weight_goal_mode: state.mode,
+      baseline_weight_lb: state.baselineWeightLb,
+      baseline_date: state.baselineDateKey,
+    })
+    .eq('id', uid);
+  if (error) {
+    throw error;
+  }
+}
+
+/** Raw journal snapshot from AsyncStorage — migration helper only. */
+export async function loadLocalJournalForMigration(): Promise<Day[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (raw == null) {
     return [];
@@ -65,16 +210,8 @@ export async function loadData(): Promise<Day[]> {
   }
 }
 
-/** Persists the workout template library as a JSON array. */
-export async function saveSavedWorkouts(workouts: SavedWorkout[]): Promise<void> {
-  await AsyncStorage.setItem(SAVED_WORKOUTS_KEY, JSON.stringify(workouts));
-}
-
-/**
- * Loads saved templates; each item is passed through `normalizeSavedWorkout`
- * so legacy shapes (e.g. flat `exercises`) upgrade safely.
- */
-export async function loadSavedWorkouts(): Promise<SavedWorkout[]> {
+/** Raw workout library from AsyncStorage — migration helper only. */
+export async function loadLocalSavedWorkoutsForMigration(): Promise<SavedWorkout[]> {
   const raw = await AsyncStorage.getItem(SAVED_WORKOUTS_KEY);
   if (raw == null) {
     return [];
@@ -92,16 +229,75 @@ export async function loadSavedWorkouts(): Promise<SavedWorkout[]> {
   }
 }
 
-/**
- * Cheat meal flag for the ISO week starting Monday `currentMondayKey`.
- * If storage references a different week, resets `used` to false and writes the fresh state.
- */
-export async function loadCheatMealState(
-  currentMondayKey: string,
-): Promise<CheatMealWeekState> {
+/** Legacy profile keys from AsyncStorage — merged once during migration. */
+export async function loadLegacyProfileKeysForMigration(): Promise<{
+  displayName: string | null;
+  profilePrefs: ProfilePrefs | null;
+  onboardingComplete: boolean;
+  weightGoal: WeightGoalState | null;
+}> {
+  const [nameRaw, prefsRaw, onboardRaw, goalRaw] = await Promise.all([
+    AsyncStorage.getItem(DISPLAY_NAME_KEY),
+    AsyncStorage.getItem(PROFILE_PREFS_KEY),
+    AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY),
+    AsyncStorage.getItem(WEIGHT_GOAL_KEY),
+  ]);
+
+  const displayName =
+    nameRaw != null && nameRaw.trim().length > 0 ? nameRaw.trim() : null;
+
+  let profilePrefs: ProfilePrefs | null = null;
+  if (prefsRaw != null) {
+    try {
+      const parsed = JSON.parse(prefsRaw) as Record<string, unknown>;
+      if (
+        parsed &&
+        typeof parsed.workoutsPerWeek === 'number' &&
+        typeof parsed.activityLevel === 'string' &&
+        typeof parsed.dailyCalorieGoal === 'number'
+      ) {
+        profilePrefs = {
+          workoutsPerWeek: parsed.workoutsPerWeek as number,
+          activityLevel: parsed.activityLevel as ActivityLevel,
+          dailyCalorieGoal: parsed.dailyCalorieGoal as number,
+        };
+      }
+    } catch {
+      //
+    }
+  }
+
+  const onboardingComplete = onboardRaw === 'true';
+
+  let weightGoal: WeightGoalState | null = null;
+  if (goalRaw != null) {
+    try {
+      const parsed = JSON.parse(goalRaw) as Record<string, unknown>;
+      if (
+        parsed &&
+        (parsed.mode === 'lose' || parsed.mode === 'gain') &&
+        typeof parsed.baselineWeightLb === 'number' &&
+        typeof parsed.baselineDateKey === 'string'
+      ) {
+        weightGoal = {
+          mode: parsed.mode,
+          baselineWeightLb: parsed.baselineWeightLb,
+          baselineDateKey: parsed.baselineDateKey,
+        };
+      }
+    } catch {
+      //
+    }
+  }
+
+  return { displayName, profilePrefs, onboardingComplete, weightGoal };
+}
+
+/** Legacy cheat meal blob — migration helper only. */
+export async function loadLegacyCheatMealForMigration(): Promise<CheatMealWeekState | null> {
   const raw = await AsyncStorage.getItem(CHEAT_MEAL_KEY);
   if (raw == null) {
-    return { weekStartMonday: currentMondayKey, used: false };
+    return null;
   }
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -111,159 +307,24 @@ export async function loadCheatMealState(
       typeof (parsed as CheatMealWeekState).weekStartMonday === 'string' &&
       typeof (parsed as CheatMealWeekState).used === 'boolean'
     ) {
-      const p = parsed as CheatMealWeekState;
-      if (p.weekStartMonday !== currentMondayKey) {
-        const fresh: CheatMealWeekState = {
-          weekStartMonday: currentMondayKey,
-          used: false,
-        };
-        await AsyncStorage.setItem(CHEAT_MEAL_KEY, JSON.stringify(fresh));
-        return fresh;
-      }
-      return p;
+      return parsed as CheatMealWeekState;
     }
   } catch {
     //
   }
-  return { weekStartMonday: currentMondayKey, used: false };
+  return null;
 }
 
-/** Writes cheat meal consumption for the current week (one shot until Monday rollover). */
-export async function saveCheatMealState(state: CheatMealWeekState): Promise<void> {
-  await AsyncStorage.setItem(CHEAT_MEAL_KEY, JSON.stringify(state));
-}
-
-/** Returns null if unset or JSON does not match `WeightGoalState` schema. */
-export async function loadWeightGoal(): Promise<WeightGoalState | null> {
-  const raw = await AsyncStorage.getItem(WEIGHT_GOAL_KEY);
-  if (raw == null) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (parsed == null || typeof parsed !== 'object') {
-      return null;
-    }
-    const p = parsed as Record<string, unknown>;
-    if (
-      (p.mode !== 'lose' && p.mode !== 'gain') ||
-      typeof p.baselineWeightLb !== 'number' ||
-      !Number.isFinite(p.baselineWeightLb) ||
-      typeof p.baselineDateKey !== 'string'
-    ) {
-      return null;
-    }
-    return {
-      mode: p.mode,
-      baselineWeightLb: p.baselineWeightLb,
-      baselineDateKey: p.baselineDateKey,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** Stores cut/bulk baseline (latest weight snapshot at commit time). */
-export async function saveWeightGoal(state: WeightGoalState): Promise<void> {
-  await AsyncStorage.setItem(WEIGHT_GOAL_KEY, JSON.stringify(state));
-}
-
-/** Trimmed non-empty display name, or null if absent. */
-export async function loadDisplayName(): Promise<string | null> {
-  const raw = await AsyncStorage.getItem(DISPLAY_NAME_KEY);
-  if (raw == null) {
-    return null;
-  }
-  const t = raw.trim();
-  return t.length > 0 ? t : null;
-}
-
-/** Saves user-visible name (trimmed). */
-export async function saveDisplayName(name: string): Promise<void> {
-  await AsyncStorage.setItem(DISPLAY_NAME_KEY, name.trim());
-}
-
-/** Narrowing guard for activity level strings inside `loadProfilePrefs`. */
-function isActivityLevel(v: unknown): v is ActivityLevel {
-  return v === 'inactive' || v === 'active' || v === 'extremely_active';
-}
-
-/**
- * Loads workouts/week + activity + calorie goal blob with validation.
- * Returns null if corrupt; callers usually substitute DEFAULT_PROFILE_PREFS.
- */
-export async function loadProfilePrefs(): Promise<ProfilePrefs | null> {
-  const raw = await AsyncStorage.getItem(PROFILE_PREFS_KEY);
-  if (raw == null) {
-    return null;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (parsed == null || typeof parsed !== 'object') {
-      return null;
-    }
-    const p = parsed as Record<string, unknown>;
-    const w = p.workoutsPerWeek;
-    const a = p.activityLevel;
-    if (
-      typeof w !== 'number' ||
-      !Number.isInteger(w) ||
-      w < 1 ||
-      w > 7 ||
-      !isActivityLevel(a)
-    ) {
-      return null;
-    }
-    const rawCal = p.dailyCalorieGoal;
-    let dailyCalorieGoal = DEFAULT_PROFILE_PREFS.dailyCalorieGoal;
-    if (
-      typeof rawCal === 'number' &&
-      Number.isFinite(rawCal) &&
-      rawCal >= 800 &&
-      rawCal <= 20000
-    ) {
-      dailyCalorieGoal = Math.round(rawCal);
-    }
-    return { workoutsPerWeek: w, activityLevel: a, dailyCalorieGoal };
-  } catch {
-    return null;
-  }
-}
-
-/** Writes the full profile preferences object (replaces previous blob). */
-export async function saveProfilePrefs(prefs: ProfilePrefs): Promise<void> {
-  await AsyncStorage.setItem(PROFILE_PREFS_KEY, JSON.stringify(prefs));
-}
-
-/** True when `@vinland_onboarding_complete` is exactly the string `'true'`. */
-export async function loadOnboardingComplete(): Promise<boolean> {
-  return (await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)) === 'true';
-}
-
-/** Persists onboarding completion as `'true'` or `'false'` string. */
-export async function saveOnboardingComplete(complete: boolean): Promise<void> {
-  await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, complete ? 'true' : 'false');
-}
-
-/** Current onboarding wizard step (0–4); invalid stored values clamp to 0. */
-export async function loadOnboardingStep(): Promise<number> {
-  const raw = await AsyncStorage.getItem(ONBOARDING_STEP_STORAGE_KEY);
-  if (raw == null) {
-    return 0;
-  }
-  const n = parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 0 || n > 4) {
-    return 0;
-  }
-  return n;
-}
-
-/** Persists which onboarding screen to resume. */
-export async function saveOnboardingStep(step: number): Promise<void> {
-  await AsyncStorage.setItem(ONBOARDING_STEP_STORAGE_KEY, String(step));
-}
-
-/** Clears resume pointer when onboarding finishes successfully. */
-export async function clearOnboardingStep(): Promise<void> {
-  await AsyncStorage.removeItem(ONBOARDING_STEP_STORAGE_KEY);
+/** Clears legacy AsyncStorage keys after successful cloud migration. */
+export async function clearLegacyStorageKeys(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    STORAGE_KEY,
+    SAVED_WORKOUTS_KEY,
+    CHEAT_MEAL_KEY,
+    WEIGHT_GOAL_KEY,
+    DISPLAY_NAME_KEY,
+    PROFILE_PREFS_KEY,
+    ONBOARDING_COMPLETE_KEY,
+    ONBOARDING_STEP_STORAGE_KEY,
+  ]);
 }

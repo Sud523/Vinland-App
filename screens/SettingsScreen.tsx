@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '../context/AuthContext';
 import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
 import type { ActivityLevel, WeightGoalState } from '../utils/storage';
@@ -33,6 +34,7 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 ];
 
 export default function SettingsScreen() {
+  const { signOut } = useAuth();
   const {
     displayName,
     workoutsPerWeek,
@@ -301,6 +303,34 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
           </View>
+
+          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Account</Text>
+          <Text style={styles.hint}>
+            Sign out on this device. Your journal stays in your Supabase project.
+          </Text>
+          <Pressable
+            onPress={() => {
+              Alert.alert(
+                'Sign out',
+                'You will need to sign in again to use Vinland on this device.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Sign out',
+                    style: 'destructive',
+                    onPress: () => {
+                      void signOut();
+                    },
+                  },
+                ],
+              );
+            }}
+            style={({ pressed }) => [
+              styles.signOutBtn,
+              pressed && styles.pressed,
+            ]}>
+            <Text style={styles.signOutBtnText}>Sign out</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -496,5 +526,17 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
+  },
+  signOutBtn: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderHairline,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signOutBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: V.textSecondary,
   },
 });

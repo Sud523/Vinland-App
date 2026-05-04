@@ -1,6 +1,6 @@
 /**
  * Encapsulates committing a weight goal mode (cut/bulk): requires an existing weight log,
- * then snapshots baseline weight + date into AsyncStorage via `saveWeightGoal`.
+ * then snapshots baseline weight + date via `saveWeightGoal` (Supabase `profiles`).
  */
 import type { Day } from '../types';
 import { getLatestWeightEntry } from './journalWeight';

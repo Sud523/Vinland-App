@@ -1,8 +1,10 @@
 # Vinland
 
-Vinland is a **fitness and nutrition journaling app** built with [Expo](https://expo.dev/) and React Native. It runs on **iOS, Android, and the web**. There is **no remote server**: everything runs on the device (or in the browser), and all persistent data lives in **AsyncStorage** (or `localStorage` on web).
+Vinland is a **fitness and nutrition journaling app** built with [Expo](https://expo.dev/) and React Native. It runs on **iOS, Android, and the web**. Persistent data lives in **[Supabase](https://supabase.com/)** (PostgreSQL + Row Level Security) behind **Supabase Auth**. The client uses **`@supabase/supabase-js`** with **`AsyncStorage`** so sessions survive restarts on native and web.
 
-This document explains how the app is structured, how data is stored and queried, and how the main features connect.
+This document explains app structure, backend setup, how data is stored, and how features connect.
+
+Web URL: https://sud523.github.io/Vinland-App/
 
 ---
 
@@ -13,9 +15,13 @@ This document explains how the app is structured, how data is stored and queried
 - **Week** — Seven-day view; attach saved workouts to specific dates; swipe to remove scheduled blocks; past days are read-only for edits that mutate storage.
 - **Timer** — Run interval timers for **time-based** exercises on today’s list; optional chime between segments. Checking exercises off still happens on **Home** (the timer does not write the journal).
 - **Stats** — Aggregates from the journal: completion rates, streaks, weight trends vs optional cut/bulk baseline, calorie-goal streak.
-- **Settings** — Display name, training frequency, activity level, daily calorie goal, weight goal mode (cut/bulk baseline).
+- **Settings** — Display name, training frequency, activity level, daily calorie goal, weight goal mode (cut/bulk baseline), **sign out**.
 
-**First launch** uses a multi-step onboarding modal (`FirstLaunchOnboarding`) until profile fields are complete.
+**Auth** — Users **sign in or create an account with email and password** before using the app.
+
+**First launch** — After login, a multi-step onboarding modal (`FirstLaunchOnboarding`) runs until profile fields are complete.
+
+**Legacy installs** — If the device still had Vinland data from the **pre-cloud AsyncStorage era**, the app performs a **one-time migration** to Supabase after login (see below).
 
 ---
 
@@ -25,7 +31,8 @@ This document explains how the app is structured, how data is stored and queried
 |------|--------|
 | UI | React Native, Expo SDK ~54 |
 | Navigation | `@react-navigation/native`, native stack (root + workouts), bottom tabs (main app) |
-| Persistence | `@react-native-async-storage/async-storage` |
+| Backend | Supabase (Auth + Postgres + RLS) |
+| Client DB | `@supabase/supabase-js`; auth session storage via `@react-native-async-storage/async-storage` |
 | Audio (timer) | `expo-av` |
 | Static web deploy | `npx expo export -p web` → output copied to `docs/` for **GitHub Pages** |
 
@@ -33,102 +40,52 @@ The `router-template/` folder is **not** the main app entry; the product root is
 
 ---
 
-## Getting started
+## Environment variables
 
-```bash
-npm install
-npm start
-```
+Copy `.env.example` to `.env` and set:
 
-Then open iOS simulator, Android emulator, or web from the Expo CLI.
+| Variable | Purpose |
+|----------|---------|
+| `EXPO_PUBLIC_SUPABASE_URL` | Project URL (`https://<ref>.supabase.co`) |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Public API key from Supabase **Project Settings → API** |
 
-### Lint
-
-```bash
-npm run lint
-```
-
-### Web export (GitHub Pages)
-
-The repo can publish from the **`docs/`** branch folder. Regenerate the site:
-
-```bash
-npm run export:docs
-```
-
-This runs `npx expo export -p web --clear`, then replaces `docs/` with the new `dist/`. The **`dist/`** directory is gitignored; only **`docs/`** needs to be committed for Pages.
-
-#### Rebuild + commit order (when changing the UI)
-
-GitHub Pages serves the static files in **`docs/`**. That means code changes in `screens/`, `utils/`, etc. won’t show up on the live site until you export and commit the updated `docs/` output.
-
-- **Edit code**
-- **Rebuild static web output into `docs/`**:
-
-```bash
-npm run export:docs
-```
-
-- **Check locally (optional)**:
-  - Run the dev server: `npm run web`, or
-  - Serve `docs/` with any static server (opening `docs/index.html` directly can work but may not match real hosting).
-- **Commit both source + `docs/` changes** (the web build produces a new hashed `AppEntry-*.js` and updates `docs/index.html`):
-
-```bash
-git add .
-git commit -m "Update web build"
-git push
-```
-
-#### Hard refresh and saved data (web)
-
-A normal **hard refresh** reloads the site’s files but does **not** wipe your saved journal data. Data is stored in the browser (web storage).
-
-You’ll only lose it if you **clear site data** (or use “Empty cache and hard reload”), switch browsers/profiles, or use incognito.
+Never ship `SUPABASE_SERVICE_ROLE_KEY` in the client; use it only for scripts or server tooling.
 
 ---
 
-## Project layout (source)
+## Database schema & migrations
 
-```
-App.tsx                 # Root: providers, navigation container, Settings stack screen
-components/             # Reusable UI (tasks, onboarding, timer ring, etc.)
-constants/              # Theme tokens (vinlandTheme) and legacy theme
-context/UserPrefsContext.tsx   # In-memory profile + AsyncStorage sync
-navigation/             # Tab navigator, workouts stack, header helpers, route types
-screens/                # Home, Week, Workouts list/form, Timer, Stats, Settings
-types/index.ts          # Shared TypeScript models (Day, Task, SavedWorkout, …)
-utils/
-  storage.ts            # All AsyncStorage read/write helpers and keys
-  workouts.ts           # Form parsing, scheduling tasks from saved workouts, normalization
-  stats.ts              # Streaks, aggregates, workout session cleanup
-  date.ts               # Local date keys, “today” resolution, week math
-  workoutTimer.ts       # Pure timer state machine for interval exercises
-  timerSound.ts         # Expo AV chime load/play/unload
-  journalWeight.ts      # Latest weight lookup for stats/settings goals
-  weightGoalCommit.ts   # Persist cut/bulk baseline from latest weight
-scripts/
-  sync-docs.mjs         # export:docs pipeline
-```
+SQL lives under **`supabase/migrations/`**. Apply it to your Supabase project (SQL Editor or [Supabase CLI](https://supabase.com/docs/guides/cli)). The migration defines:
+
+- **`profiles`** — One row per auth user (`id` = `auth.users.id`): display name, profile prefs, onboarding flags, cheat meal week, weight goal baseline, **`local_data_migrated_at`** (one-time legacy import).
+- **`journal_days`** / **`journal_tasks`** — Normalized journal; exercise payloads stored as **jsonb**.
+- **`workout_templates`** / **`workout_template_sections`** / **`workout_template_exercises`** — Workout library; exercise definitions as **jsonb**.
+
+Row Level Security restricts reads/writes to **`auth.uid()`**.
 
 ---
 
-## Architecture: no backend
+## Architecture (client + Supabase)
 
-There is **no HTTP API** and **no database**. “Saving” always means **writing JSON strings to AsyncStorage** (or the web equivalent).
+1. **`AuthProvider`** — Holds Supabase session; shows **`AuthScreen`** until signed in.
+2. **`UserPrefsProvider`** — Loads and updates **`profiles`** for display name, prefs, onboarding step/complete.
+3. **`LocalDataMigrationGate`** — After prefs load, if **`local_data_migrated_at`** is null, runs **`migrateLocalToRemote`** (legacy AsyncStorage → cloud), then sets **`local_data_migrated_at`**. Shows a short loading state before the main UI so tabs don’t read an empty journal mid-import.
+4. **`utils/storage.ts`** — Public API used by screens: **`loadData` / `saveData`**, **`loadSavedWorkouts` / `saveSavedWorkouts`**, cheat meal, weight goal. Implementations call Supabase via **`utils/supabase/journalRemote.ts`**, **`workoutsRemote.ts`**, and profile patches.
+5. **Domain types** — Unchanged in **`types/index.ts`** (`Day`, `Task`, `SavedWorkout`, `ExerciseDefinition`).
 
-**Querying** means:
+**Querying** for screens:
 
-1. `loadData()` → full `Day[]` journal.
-2. `loadSavedWorkouts()` → workout library.
-3. Smaller loaders (`loadProfilePrefs`, `loadWeightGoal`, …) for specific keys.
+1. `loadData()` → full `Day[]` from `journal_*` tables.
+2. `loadSavedWorkouts()` → templates from `workout_*` tables.
+3. `loadWeightGoal()` / cheat meal → `profiles` columns.
 
-Screens typically:
+Screens typically **on focus** call these loaders; **on action** they update React state then **`saveData`** / **`saveSavedWorkouts`** (full journal or full library replace patterns, same as before).
 
-1. **On focus** — `useFocusEffect` loads from storage into React state.
-2. **On user action** — Update state, then call the appropriate `save*` helper.
+---
 
-Race conditions are mitigated with `cancelled` flags in async effects where needed.
+## Legacy AsyncStorage (migration only)
+
+Older builds stored JSON under keys like `@vinland_days`. Those keys are **only** read inside **`utils/migrateLocalToSupabase.ts`** when **`profiles.local_data_migrated_at`** is still null. After a successful upload and marker update, **`clearLegacyStorageKeys`** removes the old keys from the device.
 
 ---
 
@@ -150,56 +107,63 @@ One object per calendar date (`date`: `YYYY-MM-DD`). Holds:
 
 ### `ExerciseDefinition`
 
-Structured exercise: sets, reps or time phases, rest, optional flag, **kind** (`weighted` | `cardio` | `circuit`), cardio patterns, circuit stations, etc. Used both in the library and in scheduled **`Task`** rows.
+Structured exercise: sets, reps or time phases, rest, optional flag, **kind** (`weighted` | `cardio` | `circuit`), cardio patterns, circuit stations, etc.
 
 ### `Task`
 
-`name`, `completed`, optional **`exercise`**, optional **`isScheduledWorkoutRoot`** for the titled row when scheduling from the library (used Week swipe-delete segmentation).
+`name`, `completed`, optional **`exercise`**, optional **`isScheduledWorkoutRoot`** for the titled row when scheduling from the library.
 
 ---
 
-## AsyncStorage keys
+## Project layout (source)
 
-| Key constant / pattern | Content |
-|------------------------|--------|
-| `@vinland_days` | `Day[]` — full journal |
-| `@vinland_saved_workouts` | `SavedWorkout[]` — library |
-| `@vinland_cheat_meal_week` | `{ weekStartMonday, used }` — cheat meal for ISO week |
-| `@vinland_weight_goal` | `{ mode, baselineWeightLb, baselineDateKey }` |
-| `@vinland_display_name` | string |
-| `@vinland_profile_prefs` | `{ workoutsPerWeek, activityLevel, dailyCalorieGoal }` |
-| `@vinland_onboarding_complete` | `'true'` / absent |
-| `@vinland_onboarding_step` | step index string for onboarding modal |
-
-See **`utils/storage.ts`** for validation and migration-style behavior (e.g. cheat meal week rollover).
+```
+App.tsx                      # AuthProvider → UserPrefsProvider → LocalDataMigrationGate → navigation
+components/
+  FirstLaunchOnboarding.tsx
+  LocalDataMigrationGate.tsx
+context/
+  AuthContext.tsx
+  UserPrefsContext.tsx
+screens/                     # Home, Week, Workouts, Timer, Stats, Settings, AuthScreen
+types/index.ts
+utils/
+  storage.ts                 # Facade: Supabase-backed loaders/savers
+  supabase.ts                # createClient (EXPO_PUBLIC_* env)
+  supabase/journalRemote.ts
+  supabase/workoutsRemote.ts
+  migrateLocalToSupabase.ts  # One-time AsyncStorage import
+supabase/migrations/         # Postgres schema + RLS
+```
 
 ---
 
-## How data flows through the app
+## Getting started
 
-### Journal (`Day[]`)
+```bash
+npm install
+npm start
+```
 
-- **Authoritative store**: `@vinland_days`.
-- **Home** — Loads on tab focus; ensures today exists; merges UTC vs local date keys via **`resolveTodayDay`**; persists task toggles, workout start/end, weight, calorie fields.
-- **Week** — Loads journal; writes when adding a saved workout to a day or when swipe-deleting a segment; **past dates** block mutations that change schedule.
-- **Timer** — Reads today’s tasks to list timed exercises; it does **not** persist task completion (use Home checkboxes after training).
-- **Stats** — Read-only aggregate over `Day[]` plus **`loadWeightGoal`** for progress copy.
+Then open iOS simulator, Android emulator, or web from the Expo CLI.
 
-### Workout library
+### Lint
 
-- **Workouts list** — `loadSavedWorkouts` on focus.
-- **Workout form** — Builds/edits `SavedWorkout`; `saveSavedWorkouts` replaces entire array (list screen reload pattern).
+```bash
+npm run lint
+```
 
-### Profile and onboarding
+### Web export (GitHub Pages)
 
-- **`UserPrefsProvider`** hydrates display name + profile prefs + onboarding flag on mount.
-- Mutations (`setWorkoutsPerWeek`, etc.) read-modify-write **`@vinland_profile_prefs`** (or display name key) then update React state.
-- **First launch**: onboarding steps persisted with **`@vinland_onboarding_step`** until completion flag is set.
+```bash
+npm run export:docs
+```
 
-### Streaks and stats (pure functions)
+Regenerates static output into `docs/`. Commit source + `docs/` when publishing.
 
-- **`utils/stats.ts`** — `computeStats`, `currentWorkoutStreak`, `calorieGoalHitStreak`, `dayQualifiesForStreak` work off in-memory `Day[]` (no I/O).
-- **`taskCountsTowardDailyProgress`** / **`isWorkoutSectionHeader`** in **`utils/workouts.ts`** define which tasks affect streaks and completion metrics.
+#### Hard refresh and saved data (web)
+
+Journal and library data load from **Supabase** after login; session tokens persist in browser storage (via the Supabase client). Clearing site data logs you out and clears local session state.
 
 ---
 
@@ -209,16 +173,14 @@ See **`utils/storage.ts`** for validation and migration-style behavior (e.g. che
 - **Tabs** (`MainTabs.tsx`): Home, Workouts (nested stack), Week, Timer, Stats.
 - **Workouts stack** (`WorkoutsStack.tsx`): list ↔ form with `editId` param.
 
-Header styling and transitions are centralized in **`navigation/headerNav.ts`**.
-
 ---
 
 ## Important behaviors and edge cases
 
-- **Date keys**: Prefer **local** `YYYY-MM-DD` via **`localDateKey`**; **`resolveTodayDay`** still matches legacy **UTC** keys so older data appears on the correct “today.”
+- **Date keys**: Prefer **local** `YYYY-MM-DD` via **`localDateKey`**; **`resolveTodayDay`** still matches legacy **UTC** keys where applicable.
 - **Optional exercises**: Marked in definitions; excluded from streak/progress tallies where **`taskCountsTowardDailyProgress`** returns false.
 - **Scheduled workout blocks**: **`getScheduledWorkoutSegments`** finds ranges to delete as a unit on Week.
-- **Web**: Same storage and logic; base path for static hosting may be set for GitHub project Pages (see export log: `base path: /Vinland-App`).
+- **Web**: Same Supabase project as native; GitHub Pages base path may be `/Vinland-App` (see export log).
 
 ---
 
@@ -230,4 +192,4 @@ For a **step-by-step** walkthrough of screens, actions, and what gets read/writt
 
 ## Contributing / editing code
 
-Function-level documentation is being added across **`utils/`**, **`screens/`**, **`components/`**, and **`navigation/`** so each module’s responsibilities stay obvious. Start with **`utils/storage.ts`** and **`types/index.ts`** when changing persistence or shapes.
+When changing persistence, start with **`utils/storage.ts`**, **`utils/supabase/*`**, **`types/index.ts`**, and the SQL migration. Keep **RLS** policies aligned with any new tables or columns.
