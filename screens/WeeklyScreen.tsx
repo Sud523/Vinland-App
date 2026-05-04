@@ -400,15 +400,15 @@ export default function WeeklyScreen() {
 
           let restBtnLabel: string;
           if (dayLocked) {
-            restBtnLabel = isRestDay ? 'Rest day' : 'Rest day (locked)';
+            restBtnLabel = isRestDay ? 'Rest Day' : 'Rest Day (Locked)';
           } else if (isRestDay) {
-            restBtnLabel = 'Remove rest day';
+            restBtnLabel = 'Remove Rest Day';
           } else if (restBudget <= 0) {
-            restBtnLabel = 'No rest days';
+            restBtnLabel = 'No Rest Days';
           } else if (!canMarkRest) {
-            restBtnLabel = 'Rest days used';
+            restBtnLabel = 'Rest Days Used';
           } else {
-            restBtnLabel = 'Rest day';
+            restBtnLabel = 'Rest Day';
           }
 
           const restBtnDisabled = dayLocked
@@ -475,13 +475,12 @@ export default function WeeklyScreen() {
                       styles.pickBtnText,
                       addWorkoutLocked && styles.pickBtnTextDisabled,
                     ]}
-                    numberOfLines={1}
                   >
                     {dayLocked
-                      ? 'Add workout (locked)'
+                      ? 'Add Workout (Locked)'
                       : isRestDay
-                        ? 'Add workout (rest day)'
-                        : 'Add workout'}
+                        ? 'Add Workout (Rest Day)'
+                        : 'Add Workout'}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -508,7 +507,6 @@ export default function WeeklyScreen() {
                       styles.pickBtnText,
                       restBtnDisabled && styles.pickBtnTextDisabled,
                     ]}
-                    numberOfLines={1}
                   >
                     {restBtnLabel}
                   </Text>
@@ -783,6 +781,7 @@ const styles = StyleSheet.create({
     color: V.bg,
     fontWeight: '600',
     fontSize: 16,
+    textAlign: 'center',
   },
   pickBtnDisabled: {
     backgroundColor: V.surfaceComplete,

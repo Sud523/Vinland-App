@@ -397,7 +397,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           onPress={() => setWarmUpRows((p) => [...p, newExerciseRow()])}
           style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addExerciseText}>+ Add exercise to warm up</Text>
+          <Text style={styles.addExerciseText}>+ Add Exercise to Warm Up</Text>
         </Pressable>
 
         <Text style={styles.sectionTitle}>Workout</Text>
@@ -412,7 +412,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           onPress={() => setWorkoutRows((p) => [...p, newExerciseRow()])}
           style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addExerciseText}>+ Add exercise to workout</Text>
+          <Text style={styles.addExerciseText}>+ Add Exercise to Workout</Text>
         </Pressable>
 
         <Text style={styles.sectionTitle}>Cool down</Text>
@@ -427,7 +427,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           onPress={() => setCoolDownRows((p) => [...p, newExerciseRow()])}
           style={({ pressed }) => [styles.addExerciseBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addExerciseText}>+ Add exercise to cool down</Text>
+          <Text style={styles.addExerciseText}>+ Add Exercise to Cool Down</Text>
         </Pressable>
 
         <Pressable
@@ -436,7 +436,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
         >
           <Text style={styles.saveLibraryBtnText}>
-            {editingId != null ? 'Save changes' : 'Save workout'}
+            {editingId != null ? 'Save Changes' : 'Save Workout'}
           </Text>
         </Pressable>
 
@@ -445,7 +445,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           onPress={() => void addToToday()}
           style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.addTodayBtnText}>Add to today</Text>
+          <Text style={styles.addTodayBtnText}>Add to Today</Text>
         </Pressable>
 
         {editingId != null ? (
@@ -453,7 +453,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
             onPress={() => void deleteWorkout()}
             style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.deleteBtnText}>Delete workout</Text>
+            <Text style={styles.deleteBtnText}>Delete Workout</Text>
           </Pressable>
         ) : null}
       </ScrollView>

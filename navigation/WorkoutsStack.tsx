@@ -85,7 +85,7 @@ export default function WorkoutsStack() {
         name="WorkoutForm"
         component={WorkoutFormScreen}
         options={({ navigation, route }) => ({
-          title: route.params?.editId ? 'Edit workout' : 'New workout',
+          title: route.params?.editId ? 'Edit Workout' : 'New Workout',
           headerBackVisible: false,
           headerTitleAlign: 'left',
           presentation: 'card',

@@ -146,7 +146,7 @@ export default function SettingsScreen() {
             onPress={() => void saveName()}
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryBtnText}>Save name</Text>
+            <Text style={styles.primaryBtnText}>Save Name</Text>
           </Pressable>
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>
@@ -167,7 +167,7 @@ export default function SettingsScreen() {
             onPress={() => void saveCalorieGoal()}
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.primaryBtnText}>Save calorie goal</Text>
+            <Text style={styles.primaryBtnText}>Save Calorie Goal</Text>
           </Pressable>
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>

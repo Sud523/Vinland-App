@@ -365,7 +365,7 @@ export default function HomeScreen() {
                   ]}
                 >
                   <Text style={styles.workoutActionBtnText}>
-                    {workoutActive ? 'End workout' : 'Start workout'}
+                    {workoutActive ? 'End Workout' : 'Start Workout'}
                   </Text>
                 </Pressable>
                 <Text style={styles.workoutTimer} accessibilityLiveRegion="polite">

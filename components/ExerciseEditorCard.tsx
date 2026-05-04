@@ -591,7 +591,7 @@ export function ExerciseEditorCard({
                     onPress={() => addStationPhase(si)}
                     style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
                   >
-                    <Text style={styles.secondaryBtnText}>+ Add time block</Text>
+                    <Text style={styles.secondaryBtnText}>+ Add Time Block</Text>
                   </Pressable>
                 </>
               )}
@@ -601,7 +601,7 @@ export function ExerciseEditorCard({
             onPress={addCircuitStation}
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryBtnText}>+ Add station to circuit</Text>
+            <Text style={styles.secondaryBtnText}>+ Add Station to Circuit</Text>
           </Pressable>
         </>
       ) : null}
@@ -744,7 +744,7 @@ export function ExerciseEditorCard({
             onPress={addPhase}
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryBtnText}>+ Add working block</Text>
+            <Text style={styles.secondaryBtnText}>+ Add Working Block</Text>
           </Pressable>
 
           <Text style={styles.fieldLabel}>Rest between sets (minutes)</Text>
@@ -800,7 +800,7 @@ export function ExerciseEditorCard({
             onPress={addDistancePhase}
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.secondaryBtnText}>+ Add distance block</Text>
+            <Text style={styles.secondaryBtnText}>+ Add Distance Block</Text>
           </Pressable>
 
           <Text style={styles.fieldLabel}>Rest between sets (minutes)</Text>

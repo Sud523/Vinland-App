@@ -58,6 +58,34 @@ npm run export:docs
 
 This runs `npx expo export -p web --clear`, then replaces `docs/` with the new `dist/`. The **`dist/`** directory is gitignored; only **`docs/`** needs to be committed for Pages.
 
+#### Rebuild + commit order (when changing the UI)
+
+GitHub Pages serves the static files in **`docs/`**. That means code changes in `screens/`, `utils/`, etc. won’t show up on the live site until you export and commit the updated `docs/` output.
+
+- **Edit code**
+- **Rebuild static web output into `docs/`**:
+
+```bash
+npm run export:docs
+```
+
+- **Check locally (optional)**:
+  - Run the dev server: `npm run web`, or
+  - Serve `docs/` with any static server (opening `docs/index.html` directly can work but may not match real hosting).
+- **Commit both source + `docs/` changes** (the web build produces a new hashed `AppEntry-*.js` and updates `docs/index.html`):
+
+```bash
+git add .
+git commit -m "Update web build"
+git push
+```
+
+#### Hard refresh and saved data (web)
+
+A normal **hard refresh** reloads the site’s files but does **not** wipe your saved journal data. Data is stored in the browser (web storage).
+
+You’ll only lose it if you **clear site data** (or use “Empty cache and hard reload”), switch browsers/profiles, or use incognito.
+
 ---
 
 ## Project layout (source)
