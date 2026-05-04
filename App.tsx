@@ -46,9 +46,11 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <RootErrorBoundary>
-      <AppBootstrap />
-    </RootErrorBoundary>
+    <SafeAreaProvider>
+      <RootErrorBoundary>
+        <AppBootstrap />
+      </RootErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
@@ -83,8 +85,7 @@ function AppShell() {
     <UserPrefsProvider>
       <LocalDataMigrationGate>
         <GestureHandlerRootView style={styles.root}>
-          <SafeAreaProvider>
-            <NavigationContainer theme={navTheme}>
+          <NavigationContainer theme={navTheme}>
               <Stack.Navigator
                 screenOptions={{
                   headerShown: false,
@@ -145,7 +146,6 @@ function AppShell() {
             </NavigationContainer>
             <FirstLaunchOnboarding />
             <StatusBar style="light" />
-          </SafeAreaProvider>
         </GestureHandlerRootView>
       </LocalDataMigrationGate>
     </UserPrefsProvider>
