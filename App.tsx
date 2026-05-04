@@ -25,6 +25,8 @@ import MainTabs from './navigation/MainTabs';
 import type { RootStackParamList } from './navigation/types';
 import AuthScreen from './screens/AuthScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import SupabaseConfigErrorScreen from './screens/SupabaseConfigErrorScreen';
+import { isSupabaseConfigured } from './utils/supabase';
 
 const navTheme: Theme = {
   ...DarkTheme,
@@ -42,6 +44,10 @@ const navTheme: Theme = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigErrorScreen />;
+  }
+
   return (
     <AuthProvider>
       <AppShell />

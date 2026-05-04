@@ -161,6 +161,8 @@ npm run export:docs
 
 Regenerates static output into `docs/`. Commit source + `docs/` when publishing.
 
+**Environment:** Expo inlines `EXPO_PUBLIC_*` variables **when the bundle is built**. The `export:docs` script loads your repo-root **`.env`** into the process before running `expo export`, so keys end up in `docs/` like they do in dev. If you export without those variables (e.g. CI with no secrets), the deployed site would miss Supabase config—the app now shows an on-screen “Configuration missing” message instead of a blank white page.
+
 #### Hard refresh and saved data (web)
 
 Journal and library data load from **Supabase** after login; session tokens persist in browser storage (via the Supabase client). Clearing site data logs you out and clears local session state.
