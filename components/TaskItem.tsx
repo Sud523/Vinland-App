@@ -55,7 +55,7 @@ export function TaskItem({
         </Text>
         {exercise?.optional ? (
           <Text style={styles.optionalMeta}>
-            Excluded from daily progress and stats
+            Doesn’t count toward your daily completion or stats
           </Text>
         ) : null}
         {detailLines.length > 0 ? (

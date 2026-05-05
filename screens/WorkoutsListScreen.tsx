@@ -42,8 +42,7 @@ export default function WorkoutsListScreen({ navigation }: Props) {
         keyboardDismissMode="on-drag"
       >
         <Text style={styles.sub}>
-          Build reusable workouts, then schedule them on the Week tab or add
-          them to today.
+          Create workouts you can reuse, then drop them onto your week or today’s plan.
         </Text>
 
         <Pressable

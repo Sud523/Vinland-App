@@ -302,7 +302,7 @@ export function FirstLaunchOnboarding() {
               <>
                 <Text style={styles.title}>Activity level</Text>
                 <Text style={styles.sub}>
-                  This helps us frame expectations. Pick what fits best right now.
+                  How active you are day to day—not just workouts. Pick what fits you now.
                 </Text>
                 {ACTIVITY_OPTIONS.map((opt) => {
                   const selected = activityPick === opt.value;
@@ -361,8 +361,8 @@ export function FirstLaunchOnboarding() {
               <>
                 <Text style={styles.title}>Daily calories</Text>
                 <Text style={styles.sub}>
-                  Target calories per day for nutrition tracking on Home. You can change
-                  this anytime in Settings.
+                  About how many calories you aim for each day. You can change this anytime
+                  in Settings.
                 </Text>
                 <Text style={styles.label}>Calorie goal</Text>
                 <TextInput
@@ -376,7 +376,7 @@ export function FirstLaunchOnboarding() {
                   onSubmitEditing={() => void onCaloriesContinue()}
                   editable={!busy}
                 />
-                <Text style={styles.calorieRangeHint}>Between 800 and 20,000</Text>
+                <Text style={styles.calorieRangeHint}>Use a number between 800 and 20,000</Text>
                 <Pressable
                   onPress={() => void onCaloriesContinue()}
                   disabled={busy || !calorieInputValid}
@@ -399,9 +399,9 @@ export function FirstLaunchOnboarding() {
               <>
                 <Text style={styles.title}>Weight direction</Text>
                 <Text style={styles.sub}>
-                  Are you mainly cutting (losing) or bulking (gaining)? If you
-                  haven&apos;t logged a weight on Home yet, you can set this later in
-                  Settings—we&apos;ll use your latest log as a baseline when you do.
+                  Are you mainly trying to lose weight or gain weight? If you haven&apos;t
+                  logged weight on Home yet, you can skip this and set it later in Settings—we&apos;ll
+                  use your latest weigh-in when you&apos;re ready.
                 </Text>
                 {busy ? (
                   <ActivityIndicator size="large" color={V.text} style={styles.goalBusy} />

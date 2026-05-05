@@ -154,7 +154,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   const validateWorkoutName = (): boolean => {
     if (!workoutName.trim()) {
-      Alert.alert('Name your workout', 'Enter a name for this workout.');
+      Alert.alert('Name this workout', 'Give it a short name so you can find it later.');
       return false;
     }
     return true;
@@ -178,7 +178,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     }
     const parsed = parseSections();
     if (!parsed.ok) {
-      Alert.alert('Check exercises', parsed.message);
+      Alert.alert('Fix the exercises', parsed.message);
       return;
     }
 
@@ -189,13 +189,10 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     let list: SavedWorkout[];
     try {
       list = await loadSavedWorkouts();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+    } catch {
       Alert.alert(
-        'Could not load workouts',
-        msg.length > 0
-          ? msg
-          : 'Storage failed to load. Try closing and reopening the app.',
+        'Couldn’t load workouts',
+        'Check your connection and try again, or close and reopen the app.',
       );
       return;
     }
@@ -234,13 +231,10 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         };
         await saveSavedWorkouts([...list, nextSaved]);
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+    } catch {
       Alert.alert(
-        'Could not save workout',
-        msg.length > 0
-          ? msg
-          : 'Storage failed to save. Try closing and reopening the app.',
+        'Couldn’t save workout',
+        'Check your connection and try again, or close and reopen the app.',
       );
       return;
     }
@@ -249,8 +243,8 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     Alert.alert(
       currentEditId != null ? 'Updated' : 'Saved',
       currentEditId != null
-        ? 'Workout saved.'
-        : 'Workout added to your library.',
+        ? 'Your changes are saved.'
+        : 'This workout is in your library.',
     );
   };
 
@@ -261,7 +255,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     }
     const parsed = parseSections();
     if (!parsed.ok) {
-      Alert.alert('Check exercises', parsed.message);
+      Alert.alert('Fix the exercises', parsed.message);
       return;
     }
 
@@ -287,14 +281,11 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       }
 
       await saveData(next);
-      Alert.alert('Added', 'Workout added to today.');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      Alert.alert('Added', 'This workout is on today’s plan.');
+    } catch {
       Alert.alert(
-        'Could not add to today',
-        msg.length > 0
-          ? msg
-          : 'Something went wrong. Try closing and reopening the app.',
+        'Couldn’t add to today',
+        'Check your connection and try again, or close and reopen the app.',
       );
     }
   };

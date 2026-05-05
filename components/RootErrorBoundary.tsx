@@ -29,8 +29,9 @@ export class RootErrorBoundary extends Component<Props, State> {
             <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.msg}>{this.state.error.message}</Text>
             <Text style={styles.hint}>
-              In Edge or Firefox press F12 → Console to see the full stack. After fixing,
-              run npm run export:docs and push docs/ again.
+              Try refreshing the page. If this keeps happening, open your browser’s developer
+              console (for example F12) for details. After a fix, rebuild and publish the site
+              again.
             </Text>
           </ScrollView>
         </View>

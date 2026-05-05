@@ -350,9 +350,8 @@ export default function HomeScreen() {
           <Text style={styles.cardTitle}>Today&apos;s workout</Text>
           {isRestDay ? (
             <Text style={styles.restDayBody}>
-              Rest day — no workout planned. This still counts toward your streak. To
-              schedule training instead, open the Week tab and remove the rest day for
-              today.
+              Rest day—no training planned, and it still keeps your streak. To work out
+              today, go to the Week tab and turn off the rest day for this date.
             </Text>
           ) : (
             <>
@@ -374,14 +373,14 @@ export default function HomeScreen() {
               </View>
               {!canToggleExercises && today.tasks.length > 0 ? (
                 <Text style={styles.workoutGateHint}>
-                  Start your workout to check off exercises.
+                  Tap Start workout, then you can check off each exercise.
                 </Text>
               ) : null}
 
               {today.tasks.length === 0 ? (
                 <Text style={styles.emptyWorkout}>
-                  Nothing scheduled for today. Open the Week tab and add a saved workout
-                  to this date (or mark a rest day).
+                  Nothing on the calendar for today. On the Week tab, add a workout or mark
+                  a rest day.
                 </Text>
               ) : (
                 <>
@@ -416,15 +415,15 @@ export default function HomeScreen() {
         <View style={styles.nutritionCard}>
           {prefsLoaded ? (
             <Text style={styles.nutritionGoalLine}>
-              Daily calorie goal: {dailyCalorieGoal.toLocaleString()} cal
+              Daily calories: {dailyCalorieGoal.toLocaleString()} cal
             </Text>
           ) : null}
           <NutritionCheckRow
             title="Hit calorie goal today"
             subtitle={
               calorieHit
-                ? "Locked until tomorrow — you can still edit calories over below."
-                : 'Check when your intake is on track for your goal.'
+                ? 'Saved for today—you can still adjust “calories over” below.'
+                : 'Tap when you stayed at or under your calorie goal today.'
             }
             checked={calorieHit}
             disabled={calorieHit}
@@ -432,7 +431,7 @@ export default function HomeScreen() {
           />
           {calorieHit ? (
             <View style={styles.caloriesOverBlock}>
-              <Text style={styles.caloriesOverLabel}>Calories over goal (if any)</Text>
+              <Text style={styles.caloriesOverLabel}>Calories over goal (optional)</Text>
               <TextInput
                 value={caloriesOverDraft}
                 onChangeText={(t) => setCaloriesOverDraft(t.replace(/[^\d]/g, ''))}
@@ -445,13 +444,14 @@ export default function HomeScreen() {
                 style={styles.caloriesOverInput}
               />
               <Text style={styles.caloriesOverHint}>
-                Optional. Enter how many calories above your goal (0 if you were at or under).
+                If you went over, enter how many calories above your goal. Use 0 if you
+                stayed at or under.
               </Text>
             </View>
           ) : null}
           <NutritionCheckRow
             title="Used cheat meal this week"
-            subtitle="One check per week. Resets every Monday."
+            subtitle="One per week. Count resets each Monday."
             checked={cheatMealUsed}
             disabled={cheatMealUsed}
             onToggle={() => {
@@ -461,7 +461,7 @@ export default function HomeScreen() {
             }}
           />
           {cheatMealUsed ? (
-            <Text style={styles.nutritionLockedHint}>Locked until next week.</Text>
+            <Text style={styles.nutritionLockedHint}>You can change this next Monday.</Text>
           ) : null}
         </View>
 

@@ -379,11 +379,10 @@ export default function WeeklyScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.sub}>
-          This week ({weekLabel}). Target {workoutsPerWeek} workout
-          {workoutsPerWeek === 1 ? '' : 's'}/week → {restBudget} rest day
-          {restBudget === 1 ? '' : 's'} to place. Past days are view-only. Swipe a
-          workout left to remove it. Add workouts on today or future days that are not
-          rest days.
+          Week of {weekLabel}. You’re aiming for {workoutsPerWeek} workout
+          {workoutsPerWeek === 1 ? '' : 's'} per week, so you have {restBudget} rest day
+          {restBudget === 1 ? '' : 's'} to use. Earlier days are read-only. Swipe a workout
+          left to remove it. Add workouts on today or future days that aren’t rest days.
         </Text>
 
         {weekSlots.map(({ dateKey, heading }) => {
@@ -400,7 +399,7 @@ export default function WeeklyScreen() {
 
           let restBtnLabel: string;
           if (dayLocked) {
-            restBtnLabel = isRestDay ? 'Rest Day' : 'Rest Day (Locked)';
+            restBtnLabel = isRestDay ? 'Rest day' : 'Rest day (past)';
           } else if (isRestDay) {
             restBtnLabel = 'Remove Rest Day';
           } else if (restBudget <= 0) {
@@ -424,11 +423,11 @@ export default function WeeklyScreen() {
                 <Text style={styles.dayKey}>{dateKey}</Text>
               </View>
               {dayLocked ? (
-                <Text style={styles.pastHint}>Past — schedule, rest days, and removals locked</Text>
+                <Text style={styles.pastHint}>Past dates—editing is locked</Text>
               ) : null}
               {isRestDay && !dayLocked ? (
                 <Text style={styles.restDayHint}>
-                  Rest day — no workouts this date. Counts toward your streak.
+                  Rest day—no workouts scheduled. Still counts toward your streak.
                 </Text>
               ) : null}
               {weightNote ? (
@@ -437,7 +436,7 @@ export default function WeeklyScreen() {
 
               <View style={styles.workoutList}>
                 {isRestDay ? (
-                  <Text style={styles.empty}>No workouts (recovery).</Text>
+                  <Text style={styles.empty}>Rest and recovery—no workouts.</Text>
                 ) : tasks.length === 0 ? (
                   <Text style={styles.empty}>No workouts scheduled yet.</Text>
                 ) : (
@@ -477,10 +476,10 @@ export default function WeeklyScreen() {
                     ]}
                   >
                     {dayLocked
-                      ? 'Add Workout (Locked)'
+                      ? 'Add workout (past)'
                       : isRestDay
-                        ? 'Add Workout (Rest Day)'
-                        : 'Add Workout'}
+                        ? 'Rest day'
+                        : 'Add workout'}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -525,7 +524,7 @@ export default function WeeklyScreen() {
       >
         <SafeAreaView style={styles.modalSafe} edges={['top', 'left', 'right']}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Choose workout</Text>
+            <Text style={styles.modalTitle}>Pick a workout</Text>
             <Text style={styles.modalSub}>{pickerHeading}</Text>
             <Pressable
               onPress={() => setPickerForDate(null)}
@@ -538,8 +537,8 @@ export default function WeeklyScreen() {
           {savedWorkouts.length === 0 ? (
             <View style={styles.modalEmpty}>
               <Text style={styles.modalEmptyText}>
-                No saved workouts yet. Open Workouts, create one, and save it to
-                your library.
+                No saved workouts yet. Go to the Workouts tab, create one, and save it to
+                your library first.
               </Text>
             </View>
           ) : (

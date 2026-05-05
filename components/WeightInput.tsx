@@ -85,8 +85,8 @@ export function WeightInput({ weight, onWeightChange, locked = false }: WeightIn
       </View>
       <Text style={styles.hint}>
         {locked
-          ? 'Locked for today after you saved a weight. It will unlock tomorrow.'
-          : 'Pounds (lb). Enter a number and tap Done — it saves with your day.'}
+          ? 'Saved for today—you can update again tomorrow.'
+          : 'Weight in pounds. Enter a number and tap Done to save with today.'}
       </Text>
     </View>
   );

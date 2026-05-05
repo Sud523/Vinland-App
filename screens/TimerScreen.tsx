@@ -250,18 +250,17 @@ export default function TimerScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.sub}>
-          Choose a time-based exercise from today&apos;s workout. The timer runs
-          each work block in order, then rest between sets, for all sets.
-          Exercises you already checked off on Home show as done here and
-          can&apos;t be selected.
+          Pick a timed move from today’s plan. The timer runs work and rest in order
+          for every set. Exercises you already checked off on Home show as done and
+          can’t be started here.
         </Text>
         <Text style={styles.dateLine}>{date}</Text>
 
         {timedOptions.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>
-              No timed exercises today. Add a workout on the Week tab that
-              includes time-based moves (working blocks + optional rest).
+              No timed moves on today’s plan. On the Week tab, add a workout that
+              includes exercises with a time target.
             </Text>
           </View>
         ) : (

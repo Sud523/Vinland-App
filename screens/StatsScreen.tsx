@@ -133,7 +133,7 @@ export default function StatsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.sub}>
-          All-time completion, streaks, and weight direction vs your latest logs.
+          How you’re doing over time: completion, streaks, and weight vs your goal.
         </Text>
 
         <CompletionRing percentage={stats.completionPct} />
@@ -141,22 +141,22 @@ export default function StatsScreen() {
         <StatCard
           label="Best completion streak"
           value={`${stats.bestStreak} day${stats.bestStreak === 1 ? '' : 's'}`}
-          hint="Longest run of days where every exercise that counts toward your plan was done (optional exercises excluded)"
+          hint="Longest stretch of days where you finished every exercise that counts (optional moves don’t count)"
         />
         <StatCard
           label="Days with a log"
           value={String(stats.daysWithActivity)}
-          hint="Days with workouts and/or a weight entry"
+          hint="Days you trained or logged your weight"
         />
         <StatCard
           label="Tasks completed"
           value={`${stats.completedTasks} / ${stats.totalTasks}`}
-          hint="Checked vs scheduled exercises that count toward progress (optional exercises excluded)"
+          hint="Exercises you checked off out of those that count toward your plan (optional moves don’t count)"
         />
         <StatCard
           label="Calorie goal streak"
           value={`${calorieStreak} day${calorieStreak === 1 ? '' : 's'}`}
-          hint="Consecutive calendar days (today backward) you marked hitting your calorie goal on Home"
+          hint="In a row, how many days (counting back from today) you said you hit your calorie goal on Home"
         />
         <StatCard
           label="Average workout time"
@@ -167,8 +167,8 @@ export default function StatsScreen() {
           }
           hint={
             stats.workoutSessionCount > 0
-              ? `Mean duration of ${stats.workoutSessionCount} ended session${stats.workoutSessionCount === 1 ? '' : 's'} from Home (Start workout → End workout).`
-              : 'Use Start workout and End workout on Home to log session lengths.'
+              ? `Average length of ${stats.workoutSessionCount} workout${stats.workoutSessionCount === 1 ? '' : 's'} you started and finished on Home.`
+              : 'On Home, tap Start workout and End workout to record how long you trained.'
           }
         />
 
@@ -176,8 +176,8 @@ export default function StatsScreen() {
         {weightGoal == null ? (
           <View style={styles.goalCard}>
             <Text style={styles.goalBodyMuted}>
-              No weight goal set. Open Settings (gear icon) to choose cutting or
-              bulking once you have a weight log on Home.
+              No weight goal yet. After you log weight on Home, open Settings (gear) to
+              choose lose weight or gain weight.
             </Text>
           </View>
         ) : (
@@ -192,7 +192,7 @@ export default function StatsScreen() {
             </Text>
             {weightProgress?.kind === 'no_logs' ? (
               <Text style={[styles.goalBodyMuted, styles.goalBodySpaced]}>
-                Log your weight on Home to see change since your baseline.
+                Log your weight on Home to see progress from your starting point.
               </Text>
             ) : weightProgress?.kind === 'ok' ? (
               <>
@@ -200,7 +200,7 @@ export default function StatsScreen() {
                   {weightProgress.headline}
                 </Text>
                 <Text style={styles.goalMeta}>
-                  Baseline {weightProgress.baselineWeight.toFixed(1)} lb · Latest{' '}
+                  Started at {weightProgress.baselineWeight.toFixed(1)} lb · Now{' '}
                   {weightProgress.latestWeight.toFixed(1)} lb (
                   {weightProgress.latestLabel})
                 </Text>

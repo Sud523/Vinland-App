@@ -78,11 +78,11 @@ export default function SettingsScreen() {
   const saveName = async () => {
     const t = nameDraft.trim();
     if (t.length === 0) {
-      Alert.alert('Name required', 'Enter a name or nickname to continue.');
+      Alert.alert('Add a name', 'Enter a name or nickname to continue.');
       return;
     }
     await setDisplayName(t);
-    Alert.alert('Saved', 'Your display name was updated.');
+    Alert.alert('Saved', 'Your name was updated.');
   };
 
   const onDaysPick = async (n: number) => {
@@ -97,21 +97,21 @@ export default function SettingsScreen() {
     const n = parseInt(calorieDraft.replace(/\D/g, ''), 10);
     if (!Number.isFinite(n) || n < 800 || n > 20000) {
       Alert.alert(
-        'Check value',
-        'Enter a daily calorie goal between 800 and 20,000.',
+        'Check that number',
+        'Enter a daily calorie target between 800 and 20,000.',
       );
       return;
     }
     await setDailyCalorieGoal(n);
-    Alert.alert('Saved', 'Your daily calorie goal was updated.');
+    Alert.alert('Saved', 'Your calorie goal was updated.');
   };
 
   const onWeightGoal = async (mode: 'lose' | 'gain') => {
     const result = await commitWeightGoalForMode(mode, days, weightGoal);
     if (!result.ok) {
       Alert.alert(
-        'Log your weight',
-        'Add a weight entry on the Home tab so we can set a starting baseline.',
+        'Log your weight first',
+        'Add your weight on the Home tab, then come back here to set your goal.',
       );
       return;
     }
@@ -122,8 +122,8 @@ export default function SettingsScreen() {
     Alert.alert(
       'Goal updated',
       mode === 'lose'
-        ? 'Cutting baseline set from your latest weight log.'
-        : 'Bulking baseline set from your latest weight log.',
+        ? 'We’ll track progress from your latest weight toward losing fat.'
+        : 'We’ll track progress from your latest weight toward gaining muscle.',
     );
   };
 
@@ -138,7 +138,7 @@ export default function SettingsScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.sectionLabel}>Display name</Text>
-          <Text style={styles.hint}>Shown on your home welcome line.</Text>
+          <Text style={styles.hint}>This is how we greet you on Home.</Text>
           <TextInput
             value={nameDraft}
             onChangeText={setNameDraft}
@@ -159,7 +159,7 @@ export default function SettingsScreen() {
             Daily calorie goal
           </Text>
           <Text style={styles.hint}>
-            Used for the Nutrition section on Home (hit goal + optional calories over).
+            Used on Home when you track calories and your nutrition goals.
           </Text>
           <TextInput
             value={calorieDraft}
@@ -179,7 +179,7 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>
             Workouts per week
           </Text>
-          <Text style={styles.hint}>Target training days you&apos;re aiming for.</Text>
+          <Text style={styles.hint}>How many days per week you plan to train.</Text>
           <View style={styles.chipRow}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => {
               const selected = workoutsPerWeek === n;
@@ -202,7 +202,7 @@ export default function SettingsScreen() {
           </View>
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Activity level</Text>
-          <Text style={styles.hint}>How active you are outside structured workouts.</Text>
+          <Text style={styles.hint}>How much you move outside of planned workouts.</Text>
           {ACTIVITY_OPTIONS.map((opt) => {
             const selected = activityLevel === opt.value;
             return (
@@ -231,18 +231,17 @@ export default function SettingsScreen() {
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Weight goal</Text>
           <Text style={styles.hint}>
-            Cutting and bulking track change from your latest logged weight whenever you
-            switch or set a goal.
+            We compare your latest weight to a starting point when you choose lose or gain.
           </Text>
           {weightGoal == null ? (
             <Text style={styles.muted}>
-              No goal set yet. Choose below after you&apos;ve logged weight on Home.
+              No goal yet. Log your weight on Home first, or pick an option below.
             </Text>
           ) : (
             <View style={styles.currentGoal}>
               <Text style={styles.currentGoalLabel}>Current</Text>
               <Text style={styles.currentGoalValue}>
-                {weightGoal.mode === 'lose' ? 'Cutting' : 'Bulking'} · baseline{' '}
+                {weightGoal.mode === 'lose' ? 'Cutting' : 'Bulking'} · starting weight{' '}
                 {weightGoal.baselineWeightLb.toFixed(1)} lb
               </Text>
             </View>
@@ -310,16 +309,16 @@ export default function SettingsScreen() {
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>This device</Text>
           <Text style={styles.hint}>
-            If you signed in on another device first, automatic migration may have skipped this
-            phone. Upload offline workout templates and journal days that are not already in your
-            account (same template id or calendar date is skipped).
+            Use this if you used Vinland on this phone before signing in elsewhere. We’ll add any
+            workouts and journal days stored only on this device that aren’t already in your
+            account—nothing on your account gets replaced.
           </Text>
           <Pressable
             disabled={deviceImportBusy || accountActionBusy}
             onPress={() =>
               confirmAction(
                 'Import from this device?',
-                'Adds workout templates and journal days from this device’s offline storage. Existing cloud rows with the same template id or journal date are left unchanged.',
+                'We’ll copy workouts and journal days saved only on this phone into your account. Anything that already matches your account is left as-is.',
                 'Import',
                 async () => {
                   const uid = user?.id;
@@ -341,24 +340,31 @@ export default function SettingsScreen() {
                       ) {
                         Alert.alert(
                           'Nothing to import',
-                          'No offline Vinland data was found in this device’s storage.',
+                          'We didn’t find any older Vinland data saved on this phone.',
                         );
                       } else {
                         Alert.alert(
-                          'Nothing new added',
-                          'Your account already has those workout template ids and journal dates. Cloud data was kept.',
+                          'Already up to date',
+                          'Everything on this phone is already in your account.',
                         );
                       }
                     } else {
-                      Alert.alert(
-                        'Import complete',
-                        `Workout templates added: ${r.workoutTemplatesAdded}. Journal days added: ${r.journalDaysAdded}.`,
-                      );
+                      const w = r.workoutTemplatesAdded;
+                      const j = r.journalDaysAdded;
+                      let body = '';
+                      if (w > 0 && j > 0) {
+                        body = `Added ${w} saved workout${w === 1 ? '' : 's'} and ${j} journal day${j === 1 ? '' : 's'}.`;
+                      } else if (w > 0) {
+                        body = `Added ${w} saved workout${w === 1 ? '' : 's'} to your library.`;
+                      } else {
+                        body = `Added ${j} journal day${j === 1 ? '' : 's'}.`;
+                      }
+                      Alert.alert('Import complete', body);
                     }
-                  } catch (e) {
+                  } catch {
                     Alert.alert(
-                      'Import failed',
-                      e instanceof Error ? e.message : 'Something went wrong.',
+                      'Couldn’t import',
+                      'Check your internet connection and try again. If it keeps happening, try signing out and back in.',
                     );
                   } finally {
                     setDeviceImportBusy(false);
@@ -376,7 +382,7 @@ export default function SettingsScreen() {
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Account</Text>
           <Text style={styles.hint}>
-            Sign out on this device. Your journal stays in your Supabase project.
+            Sign out on this phone or browser. Your data stays tied to your account online.
           </Text>
           <Pressable
             disabled={accountActionBusy || deviceImportBusy}
@@ -405,15 +411,14 @@ export default function SettingsScreen() {
 
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Danger zone</Text>
           <Text style={styles.hint}>
-            Permanently delete your Supabase auth user and app data tied to this account. Requires
-            the delete-account Edge Function (see README).
+            Permanently delete your account and all Vinland data for it. This cannot be undone.
           </Text>
           <Pressable
             disabled={accountActionBusy || deviceImportBusy}
             onPress={() =>
               confirmDestructive(
-                'Delete account permanently?',
-                'This removes your login and deletes Vinland data stored under your user id. You cannot undo this.',
+                'Delete your account?',
+                'Your login and all Vinland data for this account will be removed. You can’t undo this.',
                 'Delete my account',
                 async () => {
                   setAccountActionBusy(true);
@@ -421,9 +426,8 @@ export default function SettingsScreen() {
                     const { error } = await deleteAccount();
                     if (error != null) {
                       Alert.alert(
-                        'Could not delete account',
-                        error.message +
-                          '\n\nIf this is your project, deploy the delete-account function: supabase functions deploy delete-account',
+                        'Couldn’t delete account',
+                        'Something went wrong on our side. Try again in a moment. If you host the app yourself, account deletion may need to be enabled on your backend.',
                       );
                     }
                   } finally {

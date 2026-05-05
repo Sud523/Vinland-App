@@ -61,7 +61,7 @@ export function CompletionRing({
           <Text style={styles.pctSuffix}>%</Text>
         </View>
       </View>
-      <Text style={styles.caption}>All-time completion rate</Text>
+      <Text style={styles.caption}>How often you finish planned exercises</Text>
     </View>
   );
 }

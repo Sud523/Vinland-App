@@ -12,25 +12,25 @@ export default function SupabaseConfigErrorScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Configuration missing</Text>
+        <Text style={styles.title}>App isn’t connected yet</Text>
         <Text style={styles.body}>
-          This build does not include Supabase credentials. The web bundle needs{' '}
-          <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_URL</Text> and{' '}
-          <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY</Text> (or{' '}
-          <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_ANON_KEY</Text>) at{' '}
-          <Text style={styles.em}>build time</Text>, not only on your machine after deploy.
+          This version was built without login settings, so Vinland can’t reach your account
+          server. The web build needs your project URL and key baked in when the site is
+          built—not added only after deploy.
         </Text>
-        <Text style={styles.section}>Fix locally</Text>
+        <Text style={styles.section}>If you’re developing locally</Text>
         <Text style={styles.body}>
           Copy <Text style={styles.mono}>.env.example</Text> to <Text style={styles.mono}>.env</Text>,
-          add your project URL and anon/publishable key, then run:
+          add <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_URL</Text> and{' '}
+          <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY</Text> (or{' '}
+          <Text style={styles.mono}>EXPO_PUBLIC_SUPABASE_ANON_KEY</Text>), then run:
         </Text>
         <Text style={styles.code}>npm run export:docs</Text>
         <Text style={styles.body}>Commit the updated <Text style={styles.mono}>docs/</Text> folder.</Text>
-        <Text style={styles.section}>Fix on GitHub Actions</Text>
+        <Text style={styles.section}>If you deploy with GitHub Actions</Text>
         <Text style={styles.body}>
-          Add repository secrets for the same variables and pass them into the job environment before{' '}
-          <Text style={styles.mono}>expo export</Text>, so they are inlined into the JS bundle.
+          Add those same values as repository secrets and load them into the environment before{' '}
+          <Text style={styles.mono}>expo export</Text> runs so they end up inside the JavaScript bundle.
         </Text>
       </ScrollView>
     </SafeAreaView>

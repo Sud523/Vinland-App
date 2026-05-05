@@ -456,8 +456,8 @@ export function ExerciseEditorCard({
       {showCircuitBuilder ? (
         <>
           <Text style={styles.sectionHint}>
-            Name the whole circuit above, then add each move in order. Complete all stations
-            for one round; repeat for the number of rounds.
+            Name the circuit, then list each station in order. Do every station once per round,
+            then repeat for as many rounds as you set.
           </Text>
           <Text style={styles.fieldLabel}>Rounds</Text>
           <TextInput
@@ -487,7 +487,7 @@ export function ExerciseEditorCard({
                 style={styles.input}
               />
               <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>Time-based (no reps)</Text>
+                <Text style={styles.switchLabel}>Use a timer instead of reps</Text>
                 <Switch
                   value={station.timeBased}
                   onValueChange={(v) => setStationTimeBased(si, v)}
@@ -530,13 +530,13 @@ export function ExerciseEditorCard({
                     </Pressable>
                     <Text style={styles.repsModeHint}>
                       {station.repsUntilFailure
-                        ? 'On: no rep target'
-                        : 'Off: fixed reps below'}
+                        ? 'Go until you can’t do another good rep'
+                        : 'Use the rep number below'}
                     </Text>
                   </View>
                   {station.repsUntilFailure ? (
                     <Text style={styles.failureDescription}>
-                      This station is done to failure for the rep count.
+                      You’ll do this station to failure—no fixed rep count.
                     </Text>
                   ) : (
                     <TextInput
@@ -626,7 +626,7 @@ export function ExerciseEditorCard({
             style={styles.input}
           />
           <Text style={styles.sectionHint}>
-            Steady cardio: no sets. Won&apos;t appear on the Timer tab.
+            One straight cardio block (no sets). The Timer tab is for timed strength work.
           </Text>
         </>
       ) : null}
@@ -647,7 +647,7 @@ export function ExerciseEditorCard({
 
       {showWeightedTimeSwitch ? (
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Time-based (no reps)</Text>
+          <Text style={styles.switchLabel}>Use a timer instead of reps</Text>
           <Switch
             value={value.timeBased}
             onValueChange={setTimeBased}
@@ -686,13 +686,13 @@ export function ExerciseEditorCard({
             </Pressable>
             <Text style={styles.repsModeHint}>
               {value.repsUntilFailure
-                ? 'On: no rep target'
-                : 'Off: fixed reps below'}
+                ? 'Go until you can’t do another good rep'
+                : 'Use the rep number below'}
             </Text>
           </View>
           {value.repsUntilFailure ? (
             <Text style={styles.failureDescription}>
-              Each set is done to muscular failure instead of a set number of reps.
+              Each set goes to failure instead of a fixed number of reps.
             </Text>
           ) : (
             <TextInput
@@ -710,7 +710,7 @@ export function ExerciseEditorCard({
       {showTimePhasesWeighted || showCardioIntervalTime ? (
         <>
           <Text style={styles.sectionHint}>
-            Add one or more working blocks (label + minutes). Example: Hard 4, Light 3.
+            Add work blocks with a label and length in minutes—e.g. hard 4 min, then light 3 min.
           </Text>
           {value.phases.map((phase, pi) => (
             <View key={pi} style={styles.phaseBlock}>

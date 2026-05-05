@@ -28,7 +28,7 @@ export default function AuthScreen() {
   const onSubmit = useCallback(async () => {
     const em = email.trim();
     if (em.length === 0 || password.length < 6 || busy) {
-      setMessage('Enter email and a password of at least 6 characters.');
+      setMessage('Use your email and a password with at least 6 characters.');
       return;
     }
     setBusy(true);
@@ -39,7 +39,7 @@ export default function AuthScreen() {
       if (error) {
         setMessage(error.message);
       } else if (mode === 'signUp') {
-        setMessage('Check your email to confirm, or sign in if confirmations are disabled.');
+        setMessage('Check your email to confirm your account, then sign in.');
       }
     } finally {
       setBusy(false);
@@ -53,7 +53,7 @@ export default function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.inner}>
           <Text style={styles.title}>Vinland</Text>
-          <Text style={styles.sub}>Sign in to sync your journal across devices.</Text>
+          <Text style={styles.sub}>Sign in to save your journal and workouts everywhere you use Vinland.</Text>
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -146,11 +146,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: V.borderMuted,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    borderWidth: V.outlineWidth,
+    borderColor: V.border,
+    borderRadius: V.boxRadius,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
     fontSize: 16,
     color: V.text,
     marginBottom: 16,
@@ -163,7 +163,9 @@ const styles = StyleSheet.create({
   },
   btn: {
     backgroundColor: V.accent,
-    borderRadius: 10,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: 'rgba(0, 0, 0, 0.5)',
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
