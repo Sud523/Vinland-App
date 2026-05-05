@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:docs": "node scripts/sync-docs.mjs",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "supabase:deploy-delete-account": "supabase functions deploy delete-account"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -49,6 +50,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "supabase": "^2.98.1",
     "typescript": "~5.9.2"
   },
   "private": true

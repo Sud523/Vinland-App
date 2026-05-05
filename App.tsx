@@ -4,23 +4,23 @@
  */
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from './context/AuthContext';
 import { FirstLaunchOnboarding } from './components/FirstLaunchOnboarding';
 import { LocalDataMigrationGate } from './components/LocalDataMigrationGate';
-import { RootErrorBoundary } from './components/RootErrorBoundary';
 import { OutlinedNavBackButton } from './components/OutlinedNavBackButton';
-import { UserPrefsProvider } from './context/UserPrefsContext';
+import { RootErrorBoundary } from './components/RootErrorBoundary';
 import { V } from './constants/vinlandTheme';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { UserPrefsProvider } from './context/UserPrefsContext';
 import {
-  headerTitleBarContainerStyle,
-  headerTitleBarStyle,
-  smoothStackTransition,
+    headerTitleBarContainerStyle,
+    headerTitleBarStyle,
+    smoothStackTransition,
 } from './navigation/headerNav';
 import MainTabs from './navigation/MainTabs';
 import type { RootStackParamList } from './navigation/types';

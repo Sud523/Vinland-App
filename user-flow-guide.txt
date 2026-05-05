@@ -3,7 +3,10 @@ VINLAND — USER FLOW GUIDE (Supabase-backed)
 ================================================================================
 This guide walks through how a user moves through the app and what happens for
 each action. Persistent state is stored in Supabase (Postgres) via the client;
-legacy AsyncStorage is only used once for migration from older offline builds.
+legacy AsyncStorage is used for one-time automatic migration (when
+profiles.local_data_migrated_at is still null) and optionally from Settings via
+“Import from this device” when migration was skipped on this phone (e.g. another
+device migrated first).
 
 Legend:
   READ  = load from Supabase (or in-memory React state)
@@ -33,6 +36,11 @@ Legend:
       legacy keys.
     - Gate shows a brief spinner until this check finishes so tabs never READ
       an empty journal while migration is still uploading.
+
+    - If `local_data_migrated_at` is already set (another device ran migration
+      first), this device skips automatic upload of legacy keys; the user can
+      still merge phone-only library/journal from Settings → “Import from this
+      device” (see §8).
 
 • If onboarding_complete is false → FirstLaunchOnboarding modal (see §2).
 
@@ -106,6 +114,15 @@ On focus: READ loadData + loadWeightGoal
 
 • Cut / Bulk → commitWeightGoalForMode → WRITE profiles weight_goal_* 
 
+• Import from this device — READ legacy AsyncStorage snapshots
+      (`loadLocalSavedWorkoutsForMigration`, `loadLocalJournalForMigration`),
+      READ cloud library + full journal, merge (append workout templates whose
+      `id` is not already in Supabase; append journal days whose calendar `date`
+      has no row in the cloud — never overwrite same id / same date), then
+      WRITE `replaceSavedWorkouts` / `replaceFullJournal` only when there are
+      additions. Shows an alert with counts or “nothing to import”. Implemented
+      in `utils/importLocalDeviceData.ts`.
+
 • Sign out → supabase.auth.signOut → AUTH cleared → AuthScreen
 
 --------------------------------------------------------------------------------
@@ -120,9 +137,11 @@ profiles                  Settings, UserPrefsContext, cheat meal, weight goal,
                           onboarding fields, local_data_migrated_at
 
 journal_days / journal_tasks   Home, Week, onboarding (weight goal path),
-                               Stats, Timer (read-only)
+                               Stats, Timer (read-only); Settings “Import from
+                               this device” may WRITE merged rows
 
-workout_templates (+ sections + exercises)   Workouts list/form, Week scheduling
+workout_templates (+ sections + exercises)   Workouts list/form, Week scheduling;
+                               Settings import may WRITE merged templates
 
 ================================================================================
 END OF GUIDE

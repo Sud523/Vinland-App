@@ -19,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
+import { confirmAction, confirmDestructive } from '../utils/confirmDestructive';
+import { importMergeLocalDeviceData } from '../utils/importLocalDeviceData';
 import type { ActivityLevel, WeightGoalState } from '../utils/storage';
 import { loadData, loadWeightGoal } from '../utils/storage';
 import { commitWeightGoalForMode } from '../utils/weightGoalCommit';
@@ -34,7 +36,7 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 ];
 
 export default function SettingsScreen() {
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount, user } = useAuth();
   const {
     displayName,
     workoutsPerWeek,
@@ -50,6 +52,8 @@ export default function SettingsScreen() {
   const [calorieDraft, setCalorieDraft] = useState(String(dailyCalorieGoal));
   const [weightGoal, setWeightGoalState] = useState<WeightGoalState | null>(null);
   const [days, setDays] = useState<Awaited<ReturnType<typeof loadData>>>([]);
+  const [accountActionBusy, setAccountActionBusy] = useState(false);
+  const [deviceImportBusy, setDeviceImportBusy] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -304,32 +308,136 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
+          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>This device</Text>
+          <Text style={styles.hint}>
+            If you signed in on another device first, automatic migration may have skipped this
+            phone. Upload offline workout templates and journal days that are not already in your
+            account (same template id or calendar date is skipped).
+          </Text>
+          <Pressable
+            disabled={deviceImportBusy || accountActionBusy}
+            onPress={() =>
+              confirmAction(
+                'Import from this device?',
+                'Adds workout templates and journal days from this device’s offline storage. Existing cloud rows with the same template id or journal date are left unchanged.',
+                'Import',
+                async () => {
+                  const uid = user?.id;
+                  if (uid == null) {
+                    return;
+                  }
+                  setDeviceImportBusy(true);
+                  try {
+                    const r = await importMergeLocalDeviceData(uid);
+                    const loaded = await loadData();
+                    setDays(loaded);
+                    if (
+                      r.workoutTemplatesAdded === 0 &&
+                      r.journalDaysAdded === 0
+                    ) {
+                      if (
+                        r.localWorkoutCount === 0 &&
+                        r.localJournalDayCount === 0
+                      ) {
+                        Alert.alert(
+                          'Nothing to import',
+                          'No offline Vinland data was found in this device’s storage.',
+                        );
+                      } else {
+                        Alert.alert(
+                          'Nothing new added',
+                          'Your account already has those workout template ids and journal dates. Cloud data was kept.',
+                        );
+                      }
+                    } else {
+                      Alert.alert(
+                        'Import complete',
+                        `Workout templates added: ${r.workoutTemplatesAdded}. Journal days added: ${r.journalDaysAdded}.`,
+                      );
+                    }
+                  } catch (e) {
+                    Alert.alert(
+                      'Import failed',
+                      e instanceof Error ? e.message : 'Something went wrong.',
+                    );
+                  } finally {
+                    setDeviceImportBusy(false);
+                  }
+                },
+              )
+            }
+            style={({ pressed }) => [
+              styles.importDeviceBtn,
+              (deviceImportBusy || accountActionBusy) && styles.btnDisabled,
+              pressed && !deviceImportBusy && !accountActionBusy && styles.pressed,
+            ]}>
+            <Text style={styles.importDeviceBtnText}>Import from this device</Text>
+          </Pressable>
+
           <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Account</Text>
           <Text style={styles.hint}>
             Sign out on this device. Your journal stays in your Supabase project.
           </Text>
           <Pressable
-            onPress={() => {
-              Alert.alert(
+            disabled={accountActionBusy || deviceImportBusy}
+            onPress={() =>
+              confirmDestructive(
                 'Sign out',
                 'You will need to sign in again to use Vinland on this device.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Sign out',
-                    style: 'destructive',
-                    onPress: () => {
-                      void signOut();
-                    },
-                  },
-                ],
-              );
-            }}
+                'Sign out',
+                async () => {
+                  setAccountActionBusy(true);
+                  try {
+                    await signOut();
+                  } finally {
+                    setAccountActionBusy(false);
+                  }
+                },
+              )
+            }
             style={({ pressed }) => [
               styles.signOutBtn,
-              pressed && styles.pressed,
+              (accountActionBusy || deviceImportBusy) && styles.btnDisabled,
+              pressed && !accountActionBusy && !deviceImportBusy && styles.pressed,
             ]}>
             <Text style={styles.signOutBtnText}>Sign out</Text>
+          </Pressable>
+
+          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Danger zone</Text>
+          <Text style={styles.hint}>
+            Permanently delete your Supabase auth user and app data tied to this account. Requires
+            the delete-account Edge Function (see README).
+          </Text>
+          <Pressable
+            disabled={accountActionBusy || deviceImportBusy}
+            onPress={() =>
+              confirmDestructive(
+                'Delete account permanently?',
+                'This removes your login and deletes Vinland data stored under your user id. You cannot undo this.',
+                'Delete my account',
+                async () => {
+                  setAccountActionBusy(true);
+                  try {
+                    const { error } = await deleteAccount();
+                    if (error != null) {
+                      Alert.alert(
+                        'Could not delete account',
+                        error.message +
+                          '\n\nIf this is your project, deploy the delete-account function: supabase functions deploy delete-account',
+                      );
+                    }
+                  } finally {
+                    setAccountActionBusy(false);
+                  }
+                },
+              )
+            }
+            style={({ pressed }) => [
+              styles.deleteAccountBtn,
+              (accountActionBusy || deviceImportBusy) && styles.btnDisabled,
+              pressed && !accountActionBusy && !deviceImportBusy && styles.pressed,
+            ]}>
+            <Text style={styles.deleteAccountBtnText}>Delete account</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -527,6 +635,18 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
   },
+  importDeviceBtn: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderHairline,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  importDeviceBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: V.accent,
+  },
   signOutBtn: {
     borderWidth: V.outlineWidth,
     borderColor: V.borderHairline,
@@ -538,5 +658,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: V.textSecondary,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  deleteAccountBtn: {
+    borderWidth: V.outlineWidth,
+    borderColor: V.borderMuted,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  deleteAccountBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: V.textTertiary,
   },
 });

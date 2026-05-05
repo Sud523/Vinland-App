@@ -20,6 +20,8 @@ type AuthContextValue = {
   signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  /** Requires Edge Function `delete-account` deployed (see README). */
+  deleteAccount: () => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,7 +68,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
+  }, []);
+
+  const deleteAccount = useCallback(async (): Promise<{ error: Error | null }> => {
+    const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
+      'delete-account',
+      { method: 'POST' },
+    );
+    if (error != null) {
+      return { error: new Error(error.message) };
+    }
+    if (data != null && typeof data === 'object' && 'error' in data && data.error) {
+      return { error: new Error(String(data.error)) };
+    }
+    await supabase.auth.signOut({ scope: 'global' });
+    return { error: null };
   }, []);
 
   const value = useMemo(
@@ -77,8 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signOut,
+      deleteAccount,
     }),
-    [session, loading, signInWithEmail, signUpWithEmail, signOut],
+    [session, loading, signInWithEmail, signUpWithEmail, signOut, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

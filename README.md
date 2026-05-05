@@ -63,6 +63,20 @@ SQL lives under **`supabase/migrations/`**. Apply it to your Supabase project (S
 
 Row Level Security restricts reads/writes to **`auth.uid()`**.
 
+### Delete account (Edge Function)
+
+Settings → **Delete account** calls a Supabase Edge Function that uses the **service role** to remove the auth user (your tables use `ON DELETE CASCADE` from `auth.users` / `profiles`).
+
+Deploy once from a machine with the [Supabase CLI](https://supabase.com/docs/guides/cli) linked to this project. This repo includes the CLI as a dev dependency—you do **not** need a global `supabase` on `PATH`. From the repo root:
+
+```bash
+npm run supabase:deploy-delete-account
+```
+
+(equivalent to `npx supabase functions deploy delete-account`.)
+
+The Dashboard injects `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` into the function at runtime. Until this function is deployed, delete will fail and the app shows an error alert.
+
 ---
 
 ## Architecture (client + Supabase)
