@@ -6,7 +6,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { V } from '../constants/vinlandTheme';
@@ -14,6 +14,7 @@ import type { WorkoutsStackParamList } from '../navigation/types';
 import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
 import { savedWorkoutExerciseCount, savedWorkoutLabel } from '../utils/workouts';
+import { downloadWorkoutPdf } from '../utils/workoutPdf';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsList'>;
 
@@ -77,15 +78,41 @@ export default function WorkoutsListScreen({ navigation }: Props) {
                   {savedWorkoutExerciseCount(w) === 1 ? '' : 's'}
                 </Text>
               </View>
-              <Pressable
-                onPress={() => navigation.navigate('WorkoutForm', { editId: w.id })}
-                style={({ pressed }) => [
-                  styles.editBtn,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.editBtnText}>Edit</Text>
-              </Pressable>
+              <View style={styles.rowActions}>
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      'Export workout',
+                      'Download this workout as a PDF to your device?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Download',
+                          onPress: () => void downloadWorkoutPdf(w),
+                        },
+                      ],
+                    );
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Download workout as PDF"
+                  style={({ pressed }) => [
+                    styles.iconBtn,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons name="download-outline" size={18} color={V.link} />
+                </Pressable>
+
+                <Pressable
+                  onPress={() => navigation.navigate('WorkoutForm', { editId: w.id })}
+                  style={({ pressed }) => [
+                    styles.editBtn,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.editBtnText}>Edit</Text>
+                </Pressable>
+              </View>
             </View>
           ))
         )}
@@ -173,6 +200,21 @@ const styles = StyleSheet.create({
     color: V.textSecondary,
     marginTop: 4,
     lineHeight: 20,
+  },
+  rowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: V.border,
   },
   editBtn: {
     paddingVertical: 8,
