@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
+  InteractionManager,
   Keyboard,
   Pressable,
   ScrollView,
@@ -167,8 +168,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     return sectionedFormsToDefinitions(warmForms, mainForms, coolForms);
   };
 
-  const goBackToList = () => {
-    navigation.goBack();
+  /** Leave the editor and return to the workouts list (root of this stack). */
+  const exitToWorkoutList = () => {
+    navigation.popToTop();
   };
 
   const saveWorkoutToLibrary = async () => {
@@ -200,6 +202,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     const currentEditId = editingId;
 
     try {
+      // Persists the full library to Supabase (workout_templates + sections + exercises).
       if (currentEditId != null) {
         const next = list.map((w) => {
           if (w.id !== currentEditId) {
@@ -239,13 +242,15 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       return;
     }
 
-    goBackToList();
-    Alert.alert(
-      currentEditId != null ? 'Updated' : 'Saved',
-      currentEditId != null
-        ? 'Your changes are saved.'
-        : 'This workout is in your library.',
-    );
+    exitToWorkoutList();
+    InteractionManager.runAfterInteractions(() => {
+      Alert.alert(
+        currentEditId != null ? 'Updated' : 'Saved',
+        currentEditId != null
+          ? 'Your changes are saved to your account.'
+          : 'This workout is in your library.',
+      );
+    });
   };
 
   const addToToday = async () => {
@@ -297,7 +302,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     const list = await loadSavedWorkouts();
     const next = list.filter((w) => w.id !== editingId);
     await saveSavedWorkouts(next);
-    goBackToList();
+    exitToWorkoutList();
   };
 
   const renderSectionList = (
