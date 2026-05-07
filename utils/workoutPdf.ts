@@ -5,6 +5,64 @@ import { Alert, Platform } from 'react-native';
 import { exerciseSummaryLines, savedWorkoutLabel } from './workouts';
 import type { ExerciseDefinition, SavedWorkout } from '../types';
 
+async function printHtmlOnWeb(html: string, title: string): Promise<void> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    throw new Error('Web print not available');
+  }
+
+  const existing = document.getElementById('vinland-workout-print-frame');
+  if (existing) {
+    existing.remove();
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'vinland-workout-print-frame';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument;
+  const win = iframe.contentWindow;
+  if (!doc || !win) {
+    iframe.remove();
+    throw new Error('Could not access print frame');
+  }
+
+  // Ensure the browser sees a standalone "document" (important for reliable printing).
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  // Some browsers need a tick to layout before printing.
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+
+  try {
+    win.document.title = title;
+  } catch {
+    // ignore
+  }
+
+  win.focus();
+  win.print();
+
+  // Clean up after the print dialog has a chance to open.
+  setTimeout(() => {
+    try {
+      iframe.remove();
+    } catch {
+      // ignore
+    }
+  }, 1000);
+}
+
 function escapeHtml(input: string): string {
   return input
     .replaceAll('&', '&amp;')
@@ -184,12 +242,15 @@ function workoutToHtml(w: SavedWorkout): string {
 export async function downloadWorkoutPdf(w: SavedWorkout): Promise<void> {
   const html = workoutToHtml(w);
   if (Platform.OS === 'web') {
-    // Web can still export via the browser print dialog ("Save as PDF").
     try {
-      await Print.printAsync({ html });
+      const title = slugifyFileName(savedWorkoutLabel(w));
+      await printHtmlOnWeb(html, title);
     } catch {
-      // Alert is unreliable on web; still attempt to surface something in dev.
-      Alert.alert('Couldn’t export PDF', 'Your browser blocked the print dialog.');
+      // Alert is unreliable on web; but try anyway.
+      Alert.alert(
+        'Couldn’t export PDF',
+        'Your browser blocked the print dialog. Try allowing popups/print dialogs.',
+      );
     }
     return;
   }
