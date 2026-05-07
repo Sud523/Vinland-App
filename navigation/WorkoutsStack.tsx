@@ -13,6 +13,7 @@ import {
   smoothStackTransition,
 } from './headerNav';
 import WorkoutFormScreen from '../screens/WorkoutFormScreen';
+import WorkoutExportPreviewScreen from '../screens/WorkoutExportPreviewScreen';
 import WorkoutsListScreen from '../screens/WorkoutsListScreen';
 import type { WorkoutsStackParamList } from './types';
 
@@ -114,6 +115,42 @@ export default function WorkoutsStack() {
                   onPress={() => navigation.goBack()}
                   label="Workouts"
                 />
+              ),
+            },
+          }),
+          headerLeftContainerStyle: {
+            paddingLeft: Platform.OS === 'ios' ? 8 : 6,
+            paddingRight: 6,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        })}
+      />
+      <Stack.Screen
+        name="WorkoutExportPreview"
+        component={WorkoutExportPreviewScreen}
+        options={({ navigation }) => ({
+          title: 'Export',
+          headerBackVisible: false,
+          headerTitleAlign: 'left',
+          presentation: 'card',
+          ...smoothStackTransition,
+          ...Platform.select({
+            ios: {
+              fullScreenGestureEnabled: true,
+              unstable_headerLeftItems: () => [
+                {
+                  type: 'custom' as const,
+                  hidesSharedBackground: true,
+                  element: (
+                    <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
+                  ),
+                },
+              ],
+            },
+            default: {
+              headerLeft: () => (
+                <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
               ),
             },
           }),

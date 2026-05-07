@@ -14,7 +14,6 @@ import type { WorkoutsStackParamList } from '../navigation/types';
 import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
 import { savedWorkoutExerciseCount, savedWorkoutLabel } from '../utils/workouts';
-import { downloadWorkoutPdf } from '../utils/workoutPdf';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsList'>;
 
@@ -80,7 +79,9 @@ export default function WorkoutsListScreen({ navigation }: Props) {
               </View>
               <View style={styles.rowActions}>
                 <Pressable
-                  onPress={() => void downloadWorkoutPdf(w)}
+                  onPress={() =>
+                    navigation.navigate('WorkoutExportPreview', { workoutId: w.id })
+                  }
                   accessibilityRole="button"
                   accessibilityLabel="Download workout as PDF"
                   style={({ pressed }) => [

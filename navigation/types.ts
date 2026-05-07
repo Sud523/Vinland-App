@@ -9,4 +9,5 @@ export type RootStackParamList = {
 export type WorkoutsStackParamList = {
   WorkoutsList: undefined;
   WorkoutForm: { editId?: string };
+  WorkoutExportPreview: { workoutId: string };
 };
