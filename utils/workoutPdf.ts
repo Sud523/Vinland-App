@@ -182,14 +182,20 @@ function workoutToHtml(w: SavedWorkout): string {
 }
 
 export async function downloadWorkoutPdf(w: SavedWorkout): Promise<void> {
+  const html = workoutToHtml(w);
   if (Platform.OS === 'web') {
-    Alert.alert('Not supported', 'PDF export is not supported on web right now.');
+    // Web can still export via the browser print dialog ("Save as PDF").
+    try {
+      await Print.printAsync({ html });
+    } catch {
+      // Alert is unreliable on web; still attempt to surface something in dev.
+      Alert.alert('Couldn’t export PDF', 'Your browser blocked the print dialog.');
+    }
     return;
   }
 
   try {
     const fileName = `${slugifyFileName(savedWorkoutLabel(w))}.pdf`;
-    const html = workoutToHtml(w);
     const { uri } = await Print.printToFileAsync({
       html,
       base64: false,

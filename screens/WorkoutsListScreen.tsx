@@ -6,7 +6,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { V } from '../constants/vinlandTheme';
@@ -80,19 +80,7 @@ export default function WorkoutsListScreen({ navigation }: Props) {
               </View>
               <View style={styles.rowActions}>
                 <Pressable
-                  onPress={() => {
-                    Alert.alert(
-                      'Export workout',
-                      'Download this workout as a PDF to your device?',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Download',
-                          onPress: () => void downloadWorkoutPdf(w),
-                        },
-                      ],
-                    );
-                  }}
+                  onPress={() => void downloadWorkoutPdf(w)}
                   accessibilityRole="button"
                   accessibilityLabel="Download workout as PDF"
                   style={({ pressed }) => [
