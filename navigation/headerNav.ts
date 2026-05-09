@@ -15,7 +15,7 @@ export const smoothStackTransition = Platform.select({
 /** Matches compact back control and standard iOS nav title metrics (17pt semibold). */
 export const headerTitleBarStyle = {
   color: V.text,
-  fontWeight: '600' as const,
+  fontWeight: '700' as const,
   fontSize: 17,
   lineHeight: 22,
 };

@@ -33,11 +33,12 @@ const styles = StyleSheet.create({
     backgroundColor: V.divider,
   },
   text: {
-    fontSize: 12,
+    fontSize: 10,
+    fontFamily: V.fontPixel,
     fontWeight: '800',
     color: V.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 1.0,
+    letterSpacing: 1.6,
   },
 });
 

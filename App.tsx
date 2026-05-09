@@ -4,16 +4,19 @@
  */
 import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
 import { FirstLaunchOnboarding } from './components/FirstLaunchOnboarding';
 import { LocalDataMigrationGate } from './components/LocalDataMigrationGate';
 import { OutlinedNavBackButton } from './components/OutlinedNavBackButton';
 import { RootErrorBoundary } from './components/RootErrorBoundary';
+import { DitherOverlay } from './components/ui/DitherOverlay';
 import { V } from './constants/vinlandTheme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UserPrefsProvider } from './context/UserPrefsContext';
@@ -45,6 +48,20 @@ const navTheme: Theme = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    PressStart2P_400Regular,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.loadingRoot}>
+          <ActivityIndicator size="large" color={V.runeGlow} />
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <RootErrorBoundary>
@@ -85,6 +102,7 @@ function AppShell() {
     <UserPrefsProvider>
       <LocalDataMigrationGate>
         <GestureHandlerRootView style={styles.root}>
+          <DitherOverlay opacity={0.12} />
           <NavigationContainer theme={navTheme}>
               <Stack.Navigator
                 screenOptions={{

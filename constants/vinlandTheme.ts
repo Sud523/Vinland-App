@@ -24,19 +24,26 @@ export const V = {
     xxxl: 32,
   },
 
-  /** Slight rounding for touch targets while keeping crisp borders */
-  boxRadius: 12,
+  /** Boxy cards/fields — no rounding */
+  boxRadius: 0,
 
   /** Prominent stroke on boxes, inputs, and list rows */
-  outlineWidth: 1.5,
+  outlineWidth: 2,
   /** Selected / emphasized outline (e.g. active picker row) */
-  outlineWidthActive: 2.5,
+  outlineWidthActive: 3,
 
   /** Primary field / card outline (high-contrast on black) */
   border: 'rgba(228, 236, 255, 0.36)',
   borderMuted: 'rgba(228, 236, 255, 0.22)',
   borderHairline: 'rgba(228, 236, 255, 0.12)',
   divider: 'rgba(228, 236, 255, 0.14)',
+
+  /** Pixel UI helpers */
+  pixelShadow: 'rgba(0,0,0,0.45)',
+  pixelInnerBorder: 'rgba(255,255,255,0.08)',
+  pixelOuterBorder: 'rgba(0,0,0,0.65)',
+  pixelDitherA: 'rgba(255,255,255,0.04)',
+  pixelDitherB: 'rgba(0,0,0,0.10)',
 
   text: '#EAF0FF',
   textSecondary: 'rgba(234, 240, 255, 0.72)',
@@ -72,6 +79,9 @@ export const V = {
   streakFlame: '#FF6B1A',
 
   modalBg: '#070A0F',
+
+  /** Fonts (loaded at runtime in `App.tsx`) */
+  fontPixel: 'PressStart2P_400Regular',
 } as const;
 
 export const switchTrack = {

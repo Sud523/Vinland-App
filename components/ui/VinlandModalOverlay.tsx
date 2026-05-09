@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
 
 import { V } from '../../constants/vinlandTheme';
+import { DitherOverlay } from './DitherOverlay';
 
 export function VinlandModalOverlay({
   visible,
@@ -16,6 +17,7 @@ export function VinlandModalOverlay({
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.backdrop}>
         <View style={styles.card}>
+          <DitherOverlay opacity={0.16} />
           <ActivityIndicator size="large" color={V.runeGlow} />
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.sub}>{subtitle}</Text>
@@ -44,9 +46,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignItems: 'center',
     gap: 10,
+    overflow: 'hidden',
   },
   title: {
-    fontSize: 16,
+    fontSize: 12,
+    fontFamily: V.fontPixel,
     fontWeight: '800',
     color: V.text,
   },

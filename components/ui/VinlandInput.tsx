@@ -26,33 +26,49 @@ export function VinlandInput({
   return (
     <View style={containerStyle}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput
-        {...props}
-        placeholderTextColor={placeholderTextColor ?? V.placeholder}
-        style={[styles.input, style]}
-      />
+      <View style={styles.outer}>
+        <View style={styles.inner}>
+          <TextInput
+            {...props}
+            placeholderTextColor={placeholderTextColor ?? V.placeholder}
+            style={[styles.input, style]}
+          />
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 12,
+    fontSize: 10,
+    fontFamily: V.fontPixel,
     fontWeight: '700',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
   },
-  input: {
+  outer: {
+    borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,
-    borderColor: V.border,
+    borderColor: V.pixelOuterBorder,
+    backgroundColor: V.pixelShadow,
+    padding: 2,
+  },
+  inner: {
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: V.pixelInnerBorder,
+    backgroundColor: V.bgInput,
+  },
+  input: {
     borderRadius: V.boxRadius,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16,
+    fontSize: 14,
     color: V.text,
-    backgroundColor: V.bgInput,
+    backgroundColor: 'transparent',
   },
 });
 
