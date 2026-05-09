@@ -47,7 +47,7 @@ export function CompletionRing({
             cx={cx}
             cy={cy}
             r={r}
-            stroke={V.accent}
+            stroke={V.runeGlow}
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={`${circumference} ${circumference}`}

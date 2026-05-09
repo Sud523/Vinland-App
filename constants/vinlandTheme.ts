@@ -1,60 +1,85 @@
 /**
- * Vinland UI — dark grayscale, white-outlined fields, iOS-oriented.
+ * Vinland UI — dark steel, rune glow accents, pixel-etched outlines.
  */
 export const V = {
-  bg: '#000000',
-  bgElevated: '#1C1C1E',
-  bgInput: '#000000',
+  /**
+   * Palette
+   * - bg: near-black ink
+   * - surfaces: steel-tinted elevations
+   * - runeGlow: teal accent used sparingly for focus/primary actions
+   */
+  bg: '#070A0F',
+  bgElevated: '#0D111A',
+  bgElevated2: '#121827',
+  bgInput: '#070A0F',
 
-  /** Square cards/fields — no rounding */
-  boxRadius: 0,
+  /** Spacing scale (use instead of ad-hoc numbers when possible) */
+  space: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+    xxxl: 32,
+  },
+
+  /** Slight rounding for touch targets while keeping crisp borders */
+  boxRadius: 12,
 
   /** Prominent stroke on boxes, inputs, and list rows */
-  outlineWidth: 2,
+  outlineWidth: 1.5,
   /** Selected / emphasized outline (e.g. active picker row) */
-  outlineWidthActive: 3,
+  outlineWidthActive: 2.5,
 
   /** Primary field / card outline (high-contrast on black) */
-  border: 'rgba(255, 255, 255, 0.82)',
-  borderMuted: 'rgba(255, 255, 255, 0.48)',
-  borderHairline: 'rgba(255, 255, 255, 0.22)',
+  border: 'rgba(228, 236, 255, 0.36)',
+  borderMuted: 'rgba(228, 236, 255, 0.22)',
+  borderHairline: 'rgba(228, 236, 255, 0.12)',
+  divider: 'rgba(228, 236, 255, 0.14)',
 
-  text: '#F2F2F7',
-  textSecondary: '#AEAEB2',
-  textTertiary: '#8E8E93',
-  textDim: '#636366',
+  text: '#EAF0FF',
+  textSecondary: 'rgba(234, 240, 255, 0.72)',
+  textTertiary: 'rgba(234, 240, 255, 0.52)',
+  textDim: 'rgba(234, 240, 255, 0.34)',
 
-  accent: '#FFFFFF',
-  accentMuted: 'rgba(255, 255, 255, 0.72)',
+  /** Brand accent */
+  runeGlow: '#28C7D9',
+  runeGlowMuted: 'rgba(40, 199, 217, 0.55)',
+
+  accent: '#EAF0FF',
+  accentMuted: 'rgba(234, 240, 255, 0.72)',
+  focusRing: 'rgba(40, 199, 217, 0.55)',
 
   /** Completed / filled states (no hue) */
-  onComplete: '#E5E5EA',
-  surfaceComplete: '#2C2C2E',
+  onComplete: 'rgba(234, 240, 255, 0.9)',
+  surfaceComplete: '#101827',
 
-  destructive: '#C7C7CC',
-  link: '#EBEBF5',
+  destructive: 'rgba(255, 126, 138, 0.95)',
+  destructiveMuted: 'rgba(255, 126, 138, 0.55)',
+  link: '#9FF3FF',
 
-  tabBarBg: '#000000',
-  tabBarBorder: 'rgba(255, 255, 255, 0.38)',
+  tabBarBg: '#070A0F',
+  tabBarBorder: 'rgba(228, 236, 255, 0.18)',
 
-  placeholder: '#636366',
+  placeholder: 'rgba(234, 240, 255, 0.32)',
 
   /** Progress track */
-  trackBg: 'rgba(255, 255, 255, 0.12)',
-  trackFill: 'rgba(255, 255, 255, 0.85)',
+  trackBg: 'rgba(228, 236, 255, 0.10)',
+  trackFill: 'rgba(40, 199, 217, 0.85)',
 
   /** Home streak number — fiery orange on dark */
   streakFlame: '#FF6B1A',
 
-  modalBg: '#000000',
+  modalBg: '#070A0F',
 } as const;
 
 export const switchTrack = {
-  false: 'rgba(255, 255, 255, 0.22)',
-  true: 'rgba(255, 255, 255, 0.35)',
+  false: 'rgba(228, 236, 255, 0.18)',
+  true: 'rgba(40, 199, 217, 0.35)',
 } as const;
 
 export const switchThumb = {
-  off: '#48484A',
-  on: V.accent,
+  off: '#2A3244',
+  on: V.runeGlow,
 } as const;

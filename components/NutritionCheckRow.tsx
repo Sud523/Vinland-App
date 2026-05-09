@@ -89,11 +89,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxOn: {
-    borderColor: V.accent,
+    borderColor: V.runeGlow,
     backgroundColor: 'transparent',
   },
   checkboxMark: {
-    color: V.accent,
+    color: V.runeGlow,
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 15,

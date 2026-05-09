@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   section: {
     fontSize: 15,
     fontWeight: '600',
-    color: V.accent,
+    color: V.runeGlow,
     marginTop: 20,
     marginBottom: 8,
   },
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     fontSize: 13,
     color: V.bg,
-    backgroundColor: V.textSecondary,
+    backgroundColor: V.runeGlowMuted,
     padding: 12,
     marginVertical: 12,
     overflow: 'hidden',

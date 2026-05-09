@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
     color: V.textSecondary,
   },
   chipTextOn: {
-    color: V.accent,
+    color: V.runeGlow,
   },
   circuitStationCard: {
     borderWidth: V.outlineWidth,
@@ -998,10 +998,10 @@ const styles = StyleSheet.create({
     backgroundColor: V.bgInput,
   },
   optionalCheckboxOn: {
-    borderColor: V.accent,
+    borderColor: V.runeGlow,
   },
   optionalCheckMark: {
-    color: V.accent,
+    color: V.runeGlow,
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 16,
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     color: V.textSecondary,
   },
   failureChipTextOn: {
-    color: V.accent,
+    color: V.runeGlow,
   },
   repsModeHint: {
     flex: 1,

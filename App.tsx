@@ -33,7 +33,7 @@ const navTheme: Theme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: V.accent,
+    primary: V.runeGlow,
     background: V.bg,
     card: V.bg,
     text: V.text,
@@ -72,7 +72,7 @@ function AppShell() {
   if (loading) {
     return (
       <View style={styles.loadingRoot}>
-        <ActivityIndicator size="large" color={V.accent} />
+        <ActivityIndicator size="large" color={V.runeGlow} />
       </View>
     );
   }

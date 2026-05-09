@@ -207,7 +207,7 @@ function ScheduledWorkoutBlock({
             accessibilityLabel="Remove workout"
             accessibilityRole="button"
           >
-            <Ionicons name="remove" size={22} color={V.accent} />
+            <Ionicons name="remove" size={22} color={V.runeGlow} />
           </Pressable>
         </View>
       )}
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   pickBtn: {
-    backgroundColor: V.accent,
+    backgroundColor: V.runeGlow,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: V.boxRadius,
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   },
   pickBtnText: {
     color: V.bg,
-    fontWeight: '600',
+    fontWeight: '800',
     fontSize: 16,
     textAlign: 'center',
   },

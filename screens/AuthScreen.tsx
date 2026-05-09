@@ -16,6 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from '../components/ui/VinlandButton';
+import { VinlandInput } from '../components/ui/VinlandInput';
+import { VinlandCard } from '../components/ui/VinlandCard';
 
 export default function AuthScreen() {
   const { signInWithEmail, signUpWithEmail } = useAuth();
@@ -55,46 +58,44 @@ export default function AuthScreen() {
           <Text style={styles.title}>Vinland</Text>
           <Text style={styles.sub}>Sign in to save your journal and workouts everywhere you use Vinland.</Text>
 
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={V.placeholder}
-            style={styles.input}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            editable={!busy}
-          />
+          <VinlandCard padded style={styles.card}>
+            <VinlandInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              editable={!busy}
+              containerStyle={styles.field}
+            />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            placeholderTextColor={V.placeholder}
-            style={styles.input}
-            secureTextEntry
-            editable={!busy}
-          />
+            <VinlandInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              secureTextEntry
+              editable={!busy}
+              containerStyle={styles.field}
+            />
 
-          {message ? <Text style={styles.msg}>{message}</Text> : null}
+            {message ? <Text style={styles.msg}>{message}</Text> : null}
 
-          <Pressable
-            onPress={() => void onSubmit()}
-            disabled={busy}
-            style={({ pressed }) => [
-              styles.btn,
-              busy && styles.btnDisabled,
-              pressed && !busy && styles.btnPressed,
-            ]}>
             {busy ? (
-              <ActivityIndicator color={V.bg} />
-            ) : (
-              <Text style={styles.btnText}>{mode === 'signIn' ? 'Sign in' : 'Create account'}</Text>
-            )}
-          </Pressable>
+              <View style={styles.busyRow}>
+                <ActivityIndicator color={V.runeGlow} />
+                <Text style={styles.busyText}>Working…</Text>
+              </View>
+            ) : null}
+
+            <VinlandButton
+              title={mode === 'signIn' ? 'Sign in' : 'Create account'}
+              onPress={() => void onSubmit()}
+              disabled={busy}
+              variant="primary"
+            />
 
           <Pressable
             onPress={() => {
@@ -107,6 +108,7 @@ export default function AuthScreen() {
               {mode === 'signIn' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
             </Text>
           </Pressable>
+          </VinlandCard>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -123,9 +125,12 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingHorizontal: V.space.xl,
+    paddingTop: V.space.xl,
     justifyContent: 'center',
+  },
+  card: {
+    marginTop: V.space.md,
   },
   title: {
     fontSize: 28,
@@ -136,58 +141,30 @@ const styles = StyleSheet.create({
   sub: {
     fontSize: 15,
     color: V.textSecondary,
-    marginBottom: 28,
+    marginBottom: V.space.lg,
     lineHeight: 22,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: V.textSecondary,
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    borderRadius: V.boxRadius,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
-    fontSize: 16,
-    color: V.text,
-    marginBottom: 16,
-    backgroundColor: V.bgInput,
-  },
+  field: { marginBottom: V.space.md },
   msg: {
     fontSize: 14,
-    color: V.streakFlame,
-    marginBottom: 12,
+    color: V.destructive,
+    marginBottom: V.space.sm,
+    lineHeight: 18,
   },
-  btn: {
-    backgroundColor: V.accent,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: 'rgba(0, 0, 0, 0.5)',
-    paddingVertical: 14,
+  busyRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 10,
+    marginBottom: V.space.md,
   },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  btnPressed: {
-    opacity: 0.85,
-  },
-  btnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: V.bg,
-  },
+  busyText: { color: V.textSecondary, fontSize: 14, fontWeight: '600' },
   switch: {
-    marginTop: 20,
+    marginTop: V.space.lg,
     alignItems: 'center',
     paddingVertical: 8,
   },
   switchText: {
     fontSize: 15,
-    color: V.accent,
+    color: V.link,
   },
 });

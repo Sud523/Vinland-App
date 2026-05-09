@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   doneButton: {
-    backgroundColor: V.accent,
+    backgroundColor: V.runeGlow,
     paddingVertical: 10,
     paddingHorizontal: 22,
     borderRadius: V.boxRadius,

@@ -10,13 +10,15 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from './ui/VinlandButton';
+import { VinlandCard } from './ui/VinlandCard';
+import { VinlandInput } from './ui/VinlandInput';
 import { loadData, loadWeightGoal, type ActivityLevel, type WeightGoalMode } from '../utils/storage';
 import { commitWeightGoalForMode } from '../utils/weightGoalCommit';
 
@@ -219,34 +221,26 @@ export function FirstLaunchOnboarding() {
                   What would you like to be called? You can use your first name or any
                   nickname.
                 </Text>
-                <Text style={styles.label}>Your name</Text>
-                <TextInput
-                  value={nameText}
-                  onChangeText={setNameText}
-                  placeholder="e.g. Alex"
-                  placeholderTextColor={V.placeholder}
-                  style={styles.input}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                  returnKeyType="done"
-                  onSubmitEditing={() => void onNameContinue()}
-                  editable={!busy}
-                />
-                <Pressable
-                  onPress={() => void onNameContinue()}
-                  disabled={nameText.trim().length === 0 || busy}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    (nameText.trim().length === 0 || busy) && styles.btnDisabled,
-                    pressed && nameText.trim().length > 0 && !busy && styles.btnPressed,
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={V.bg} />
-                  ) : (
-                    <Text style={styles.btnText}>Continue</Text>
-                  )}
-                </Pressable>
+                <VinlandCard padded>
+                  <VinlandInput
+                    label="Your name"
+                    value={nameText}
+                    onChangeText={setNameText}
+                    placeholder="e.g. Alex"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={() => void onNameContinue()}
+                    editable={!busy}
+                    containerStyle={styles.field}
+                  />
+                  <VinlandButton
+                    title={busy ? 'Working…' : 'Continue'}
+                    onPress={() => void onNameContinue()}
+                    disabled={nameText.trim().length === 0 || busy}
+                    variant="primary"
+                  />
+                </VinlandCard>
               </>
             ) : null}
 
@@ -280,21 +274,12 @@ export function FirstLaunchOnboarding() {
                     );
                   })}
                 </View>
-                <Pressable
+                <VinlandButton
+                  title={busy ? 'Working…' : 'Continue'}
                   onPress={() => void onWorkoutsContinue()}
                   disabled={busy}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    busy && styles.btnDisabled,
-                    pressed && !busy && styles.btnPressed,
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={V.bg} />
-                  ) : (
-                    <Text style={styles.btnText}>Continue</Text>
-                  )}
-                </Pressable>
+                  variant="primary"
+                />
               </>
             ) : null}
 
@@ -339,21 +324,12 @@ export function FirstLaunchOnboarding() {
                     </Pressable>
                   );
                 })}
-                <Pressable
+                <VinlandButton
+                  title={busy ? 'Working…' : 'Continue'}
                   onPress={() => void onActivityContinue()}
                   disabled={busy}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    busy && styles.btnDisabled,
-                    pressed && !busy && styles.btnPressed,
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={V.bg} />
-                  ) : (
-                    <Text style={styles.btnText}>Continue</Text>
-                  )}
-                </Pressable>
+                  variant="primary"
+                />
               </>
             ) : null}
 
@@ -364,34 +340,27 @@ export function FirstLaunchOnboarding() {
                   About how many calories you aim for each day. You can change this anytime
                   in Settings.
                 </Text>
-                <Text style={styles.label}>Calorie goal</Text>
-                <TextInput
-                  value={calorieText}
-                  onChangeText={(t) => setCalorieText(t.replace(/[^\d]/g, ''))}
-                  placeholder="e.g. 2200"
-                  placeholderTextColor={V.placeholder}
-                  style={styles.inputCalories}
-                  keyboardType="number-pad"
-                  returnKeyType="done"
-                  onSubmitEditing={() => void onCaloriesContinue()}
-                  editable={!busy}
-                />
+                <VinlandCard padded>
+                  <VinlandInput
+                    label="Calorie goal"
+                    value={calorieText}
+                    onChangeText={(t) => setCalorieText(t.replace(/[^\d]/g, ''))}
+                    placeholder="e.g. 2200"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    onSubmitEditing={() => void onCaloriesContinue()}
+                    editable={!busy}
+                    style={styles.inputCalories}
+                    containerStyle={styles.field}
+                  />
                 <Text style={styles.calorieRangeHint}>Use a number between 800 and 20,000</Text>
-                <Pressable
-                  onPress={() => void onCaloriesContinue()}
-                  disabled={busy || !calorieInputValid}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    (busy || !calorieInputValid) && styles.btnDisabled,
-                    pressed && !busy && calorieInputValid && styles.btnPressed,
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator color={V.bg} />
-                  ) : (
-                    <Text style={styles.btnText}>Continue</Text>
-                  )}
-                </Pressable>
+                  <VinlandButton
+                    title={busy ? 'Working…' : 'Continue'}
+                    onPress={() => void onCaloriesContinue()}
+                    disabled={busy || !calorieInputValid}
+                    variant="primary"
+                  />
+                </VinlandCard>
               </>
             ) : null}
 
@@ -499,8 +468,8 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: V.space.xl,
+    paddingTop: V.space.xxxl,
     justifyContent: 'center',
   },
   title: {
@@ -516,14 +485,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     marginBottom: 28,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: V.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
+  field: { marginBottom: V.space.md },
   input: {
     borderWidth: V.outlineWidth,
     borderColor: V.border,
@@ -552,7 +514,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   btn: {
-    backgroundColor: V.accent,
+    backgroundColor: V.runeGlow,
     paddingVertical: 16,
     borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,
@@ -568,7 +530,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: V.bg,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   chipRow: {
     flexDirection: 'row',
@@ -590,7 +552,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   chipTextIdle: {
@@ -601,7 +563,7 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     fontSize: 17,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   optionCard: {
     padding: 16,
@@ -614,7 +576,7 @@ const styles = StyleSheet.create({
   },
   optionCardSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   optionTitleIdle: {
@@ -625,7 +587,7 @@ const styles = StyleSheet.create({
   optionTitleSelected: {
     fontSize: 17,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   optionHintIdle: {
     fontSize: 14,
@@ -658,7 +620,7 @@ const styles = StyleSheet.create({
   },
   goalChoiceSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   goalTitleIdle: {
@@ -669,7 +631,7 @@ const styles = StyleSheet.create({
   goalTitleSelected: {
     fontSize: 16,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   goalHintIdle: {
     fontSize: 13,

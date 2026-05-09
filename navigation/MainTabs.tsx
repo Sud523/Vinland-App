@@ -39,7 +39,7 @@ export default function MainTabs() {
         headerTintColor: V.text,
         headerShadowVisible: false,
         headerRight: () => <SettingsHeaderButton />,
-        tabBarActiveTintColor: V.accent,
+        tabBarActiveTintColor: V.runeGlow,
         tabBarInactiveTintColor: V.textDim,
         tabBarLabelStyle: {
           fontSize: 11,

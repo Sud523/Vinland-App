@@ -7,10 +7,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  ActivityIndicator,
   InteractionManager,
   Keyboard,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +22,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExerciseEditorCard } from '../components/ExerciseEditorCard';
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from '../components/ui/VinlandButton';
+import { VinlandInput } from '../components/ui/VinlandInput';
+import { VinlandModalOverlay } from '../components/ui/VinlandModalOverlay';
 import type { WorkoutsStackParamList } from '../navigation/types';
 import type { Day, ExerciseDefinition, ExerciseFormInput, SavedWorkout } from '../types';
 import { localDateKey } from '../utils/date';
@@ -64,6 +65,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [savingLabel, setSavingLabel] = useState<'save' | 'add' | 'delete'>('save');
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDescription, setWorkoutDescription] = useState('');
   const [warmUpRows, setWarmUpRows] = useState<ExerciseRow[]>([]);
@@ -207,6 +209,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
     const currentEditId = editingId;
 
+    setSavingLabel('save');
     setIsSaving(true);
     try {
       // Persists the full library to Supabase (workout_templates + sections + exercises).
@@ -263,6 +266,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   const addToToday = async () => {
     Keyboard.dismiss();
+    if (isSaving) {
+      return;
+    }
     if (!validateWorkoutName()) {
       return;
     }
@@ -280,6 +286,8 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       coolDown: parsed.coolDown,
     });
 
+    setSavingLabel('add');
+    setIsSaving(true);
     try {
       const loaded = await loadData();
       const date = localDateKey(new Date());
@@ -294,8 +302,10 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       }
 
       await saveData(next);
+      setIsSaving(false);
       Alert.alert('Added', 'This workout is on today’s plan.');
     } catch {
+      setIsSaving(false);
       Alert.alert(
         'Couldn’t add to today',
         'Check your connection and try again, or close and reopen the app.',
@@ -307,10 +317,37 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     if (editingId == null) {
       return;
     }
-    const list = await loadSavedWorkouts();
-    const next = list.filter((w) => w.id !== editingId);
-    await saveSavedWorkouts(next);
-    exitToWorkoutList();
+    if (isSaving) {
+      return;
+    }
+    setSavingLabel('delete');
+    setIsSaving(true);
+    try {
+      const list = await loadSavedWorkouts();
+      const next = list.filter((w) => w.id !== editingId);
+      await saveSavedWorkouts(next);
+      exitToWorkoutList();
+    } catch {
+      setIsSaving(false);
+      Alert.alert(
+        'Couldn’t delete workout',
+        'Check your connection and try again, or close and reopen the app.',
+      );
+    }
+  };
+
+  const confirmDeleteWorkout = () => {
+    if (editingId == null || isSaving) {
+      return;
+    }
+    Alert.alert(
+      'Delete this workout?',
+      'This will remove it from your library.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => void deleteWorkout() },
+      ],
+    );
   };
 
   const renderSectionList = (
@@ -354,15 +391,16 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
-      <Modal visible={isSaving} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.savingBackdrop}>
-          <View style={styles.savingCard}>
-            <ActivityIndicator size="large" color={V.link} />
-            <Text style={styles.savingTitle}>Saving workout…</Text>
-            <Text style={styles.savingSub}>This can take a moment.</Text>
-          </View>
-        </View>
-      </Modal>
+      <VinlandModalOverlay
+        visible={isSaving}
+        title={
+          savingLabel === 'delete'
+            ? 'Deleting workout…'
+            : savingLabel === 'add'
+              ? 'Adding to today…'
+              : 'Saving workout…'
+        }
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -378,24 +416,25 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           tab), distance intervals (no timer), or steady distance with pace.
         </Text>
 
-        <Text style={styles.label}>Workout name</Text>
-        <TextInput
+        <VinlandInput
+          label="Workout name"
           value={workoutName}
           onChangeText={setWorkoutName}
           placeholder="Push Day"
-          placeholderTextColor={V.placeholder}
-          style={styles.input}
+          editable={!isSaving}
+          containerStyle={styles.field}
         />
 
-        <Text style={styles.label}>Workout notes (optional)</Text>
-        <TextInput
+        <VinlandInput
+          label="Workout notes (optional)"
           value={workoutDescription}
           onChangeText={setWorkoutDescription}
           placeholder="e.g. training for explosiveness"
-          placeholderTextColor={V.placeholder}
-          style={styles.descInput}
           multiline
           textAlignVertical="top"
+          editable={!isSaving}
+          style={styles.descInput}
+          containerStyle={styles.field}
         />
 
         <Text style={styles.sectionTitle}>Warm up</Text>
@@ -443,38 +482,34 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           <Text style={styles.addExerciseText}>+ Add Exercise to Cool Down</Text>
         </Pressable>
 
-        <Pressable
-          onPressIn={() => Keyboard.dismiss()}
-          onPress={() => void saveWorkoutToLibrary()}
-          disabled={isSaving}
-          style={({ pressed }) => [
-            styles.saveLibraryBtn,
-            (pressed || isSaving) && styles.pressed,
-          ]}
-        >
-          <Text style={styles.saveLibraryBtnText}>
-            {editingId != null ? 'Save Changes' : 'Save Workout'}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPressIn={() => Keyboard.dismiss()}
-          onPress={() => void addToToday()}
-          disabled={isSaving}
-          style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
-        >
-          <Text style={styles.addTodayBtnText}>Add to Today</Text>
-        </Pressable>
-
-        {editingId != null ? (
-          <Pressable
-            onPress={() => void deleteWorkout()}
-            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
+        <View style={styles.actions}>
+          <VinlandButton
+            title={editingId != null ? 'Save Changes' : 'Save Workout'}
+            onPress={() => void saveWorkoutToLibrary()}
             disabled={isSaving}
-          >
-            <Text style={styles.deleteBtnText}>Delete Workout</Text>
-          </Pressable>
-        ) : null}
+            variant="primary"
+          />
+
+          <View style={styles.actionSpacer} />
+          <VinlandButton
+            title="Add to Today"
+            onPress={() => void addToToday()}
+            disabled={isSaving}
+            variant="secondary"
+          />
+
+          {editingId != null ? (
+            <>
+              <View style={styles.actionSpacer} />
+              <VinlandButton
+                title="Delete Workout"
+                onPress={confirmDeleteWorkout}
+                disabled={isSaving}
+                variant="destructive"
+              />
+            </>
+          ) : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -485,99 +520,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: V.bg,
   },
-  savingBackdrop: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    paddingHorizontal: 28,
-  },
-  savingCard: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: V.bgElevated,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    gap: 10,
-  },
-  savingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: V.text,
-  },
-  savingSub: {
-    fontSize: 14,
-    color: V.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   scroll: {
     flex: 1,
   },
   listContent: {
     flexGrow: 1,
-    paddingTop: 8,
-    paddingHorizontal: 20,
+    paddingTop: V.space.sm,
+    paddingHorizontal: V.space.xl,
   },
   sub: {
     fontSize: 15,
     color: V.textSecondary,
-    marginBottom: 20,
+    marginBottom: V.space.lg,
     lineHeight: 21,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: V.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
+  field: { marginBottom: V.space.md },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: V.text,
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: V.space.md,
+    marginBottom: V.space.sm,
     letterSpacing: 0.3,
   },
   sectionEmpty: {
     fontSize: 14,
     color: V.textSecondary,
-    marginBottom: 8,
+    marginBottom: V.space.sm,
     lineHeight: 20,
   },
-  input: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    borderRadius: V.boxRadius,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 17,
-    color: V.text,
-    backgroundColor: V.bgInput,
-    marginBottom: 8,
-  },
   descInput: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    borderRadius: V.boxRadius,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     fontSize: 16,
     color: V.text,
-    backgroundColor: V.bgInput,
-    marginBottom: 16,
     minHeight: 88,
     lineHeight: 22,
   },
   addExerciseBtn: {
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginBottom: V.space.lg,
     paddingVertical: 8,
   },
   addExerciseText: {
@@ -585,44 +565,11 @@ const styles = StyleSheet.create({
     color: V.link,
     fontWeight: '600',
   },
-  saveLibraryBtn: {
-    backgroundColor: V.accent,
-    paddingVertical: 16,
-    borderRadius: V.boxRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 52,
-    marginTop: 8,
-    marginBottom: 12,
+  actions: {
+    marginTop: V.space.sm,
+    marginBottom: V.space.md,
   },
-  saveLibraryBtnText: {
-    color: V.bg,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  addTodayBtn: {
-    backgroundColor: V.bgElevated,
-    paddingVertical: 16,
-    borderRadius: V.boxRadius,
-    alignItems: 'center',
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-  },
-  addTodayBtnText: {
-    color: V.link,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  deleteBtn: {
-    marginTop: 20,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  deleteBtnText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: V.destructive,
-  },
+  actionSpacer: { height: V.space.sm },
   pressed: {
     opacity: 0.85,
   },

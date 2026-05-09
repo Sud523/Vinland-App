@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   workoutActionBtn: {
-    backgroundColor: V.accent,
+    backgroundColor: V.runeGlow,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: V.boxRadius,

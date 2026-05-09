@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnStart: {
-    backgroundColor: V.accent,
+    backgroundColor: V.runeGlow,
   },
   btnStartText: {
     color: V.bg,

@@ -16,6 +16,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from '../components/ui/VinlandButton';
+import { VinlandCard } from '../components/ui/VinlandCard';
+import { VinlandSectionHeader } from '../components/ui/VinlandSectionHeader';
 import type { WorkoutsStackParamList } from '../navigation/types';
 import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
@@ -40,10 +43,10 @@ function Section({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <VinlandSectionHeader title={title} style={styles.sectionHeader} />
       <View style={styles.sectionBody}>
         {exercises.map((ex, idx) => (
-          <View key={`${ex.name}-${idx}`} style={styles.exerciseCard}>
+          <VinlandCard key={`${ex.name}-${idx}`} style={styles.exerciseCard} padded>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseTitle}>{ex.name}</Text>
               {ex.optional === true ? <Text style={styles.optionalTag}>Optional</Text> : null}
@@ -54,7 +57,7 @@ function Section({
               </Text>
             ))}
             {ex.notes ? <Text style={styles.exerciseNotes}>Notes: {ex.notes}</Text> : null}
-          </View>
+          </VinlandCard>
         ))}
       </View>
     </View>
@@ -97,13 +100,13 @@ export default function WorkoutExportPreviewScreen({ route }: Props) {
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={V.accent} />
+            <ActivityIndicator color={V.runeGlow} />
           </View>
         ) : workout == null ? (
-          <View style={styles.missingCard}>
+          <VinlandCard style={styles.missingCard} padded>
             <Text style={styles.missingTitle}>Workout not found</Text>
             <Text style={styles.missingText}>Go back and try exporting again.</Text>
-          </View>
+          </VinlandCard>
         ) : (
           <>
             <Text style={styles.hint}>
@@ -114,29 +117,17 @@ export default function WorkoutExportPreviewScreen({ route }: Props) {
             <Section title="Workout" workout={workout} />
             <Section title="Cool down" workout={workout} />
 
-            <Pressable
+            <VinlandButton
+              title={exporting ? 'Saving…' : 'Save as PDF'}
+              variant="primary"
+              disabled={exporting}
               onPress={() => {
                 if (exporting) return;
                 setExporting(true);
                 Promise.resolve(downloadWorkoutPdf(workout)).finally(() => setExporting(false));
               }}
-              style={({ pressed }) => [
-                styles.exportBtn,
-                pressed && !exporting && styles.pressed,
-                exporting && styles.disabled,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Save as PDF"
-            >
-              {exporting ? (
-                <ActivityIndicator color={V.bg} />
-              ) : (
-                <View style={styles.exportBtnInner}>
-                  <Ionicons name="download-outline" size={18} color={V.bg} />
-                  <Text style={styles.exportBtnText}>Save as PDF</Text>
-                </View>
-              )}
-            </Pressable>
+              style={styles.exportBtn}
+            />
           </>
         )}
       </ScrollView>
@@ -146,7 +137,7 @@ export default function WorkoutExportPreviewScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: V.bg },
-  content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 30 },
+  content: { paddingHorizontal: V.space.xl, paddingTop: V.space.sm, paddingBottom: V.space.xxxl },
   previewHeader: {
     borderWidth: V.outlineWidth,
     borderColor: V.border,
@@ -157,20 +148,10 @@ const styles = StyleSheet.create({
   previewSub: { marginTop: 8, fontSize: 14, color: V.textSecondary, lineHeight: 20 },
   hint: { marginTop: 14, fontSize: 14, color: V.textSecondary, lineHeight: 20 },
   section: { marginTop: 18 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: V.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
+  sectionHeader: { marginTop: 0, marginBottom: 10 },
   sectionBody: { gap: 10 },
   exerciseCard: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderMuted,
-    backgroundColor: V.bgElevated,
-    padding: 14,
+    padding: 0,
   },
   exerciseHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   exerciseTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: V.text },
@@ -179,23 +160,11 @@ const styles = StyleSheet.create({
   exerciseNotes: { marginTop: 8, fontSize: 13, color: V.textTertiary, lineHeight: 18 },
   exportBtn: {
     marginTop: 18,
-    backgroundColor: V.accent,
-    paddingVertical: 16,
-    borderRadius: V.boxRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  exportBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  exportBtnText: { color: V.bg, fontSize: 17, fontWeight: '700' },
-  pressed: { opacity: 0.85 },
-  disabled: { opacity: 0.6 },
   loading: { paddingVertical: 30, alignItems: 'center' },
   missingCard: {
     marginTop: 16,
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderMuted,
-    backgroundColor: V.bgElevated,
-    padding: 16,
+    padding: 0,
   },
   missingTitle: { fontSize: 16, fontWeight: '800', color: V.text, marginBottom: 6 },
   missingText: { fontSize: 14, color: V.textSecondary, lineHeight: 20 },

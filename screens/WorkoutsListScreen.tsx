@@ -10,6 +10,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from '../components/ui/VinlandButton';
+import { VinlandCard } from '../components/ui/VinlandCard';
+import { VinlandSectionHeader } from '../components/ui/VinlandSectionHeader';
 import type { WorkoutsStackParamList } from '../navigation/types';
 import type { SavedWorkout } from '../types';
 import { loadSavedWorkouts } from '../utils/storage';
@@ -45,26 +48,24 @@ export default function WorkoutsListScreen({ navigation }: Props) {
           Create workouts you can reuse, then drop them onto your week or today’s plan.
         </Text>
 
-        <Pressable
+        <VinlandButton
+          title="Create new workout"
           onPress={() => navigation.navigate('WorkoutForm', {})}
-          style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}
-        >
-          <Ionicons name="add-circle-outline" size={22} color={V.bg} />
-          <Text style={styles.createBtnText}>Create new workout</Text>
-        </Pressable>
+          variant="primary"
+        />
 
-        <Text style={styles.sectionLabel}>Your workouts</Text>
+        <VinlandSectionHeader title="Your workouts" />
 
         {savedList.length === 0 ? (
-          <View style={styles.emptyCard}>
+          <VinlandCard style={styles.emptyCard} padded>
             <Text style={styles.emptyText}>
               No saved workouts yet. Tap &quot;Create new workout&quot; to add
               your first one.
             </Text>
-          </View>
+          </VinlandCard>
         ) : (
           savedList.map((w) => (
-            <View key={w.id} style={styles.savedRow}>
+            <VinlandCard key={w.id} style={styles.savedRow} padded>
               <View style={styles.savedInfo}>
                 <Text style={styles.savedTitle}>{savedWorkoutLabel(w)}</Text>
                 {w.description ? (
@@ -102,7 +103,7 @@ export default function WorkoutsListScreen({ navigation }: Props) {
                   <Text style={styles.editBtnText}>Edit</Text>
                 </Pressable>
               </View>
-            </View>
+            </VinlandCard>
           ))
         )}
       </ScrollView>
@@ -116,44 +117,17 @@ const styles = StyleSheet.create({
     backgroundColor: V.bg,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: V.space.xl,
+    paddingTop: V.space.sm,
   },
   sub: {
     fontSize: 15,
     color: V.textSecondary,
-    marginBottom: 20,
+    marginBottom: V.space.lg,
     lineHeight: 21,
   },
-  createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: V.accent,
-    paddingVertical: 16,
-    borderRadius: V.boxRadius,
-    marginBottom: 28,
-  },
-  createBtnText: {
-    color: V.bg,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: V.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
   emptyCard: {
-    backgroundColor: V.bgElevated,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderMuted,
-    padding: 18,
+    marginTop: V.space.sm,
   },
   emptyText: {
     fontSize: 15,
@@ -163,12 +137,7 @@ const styles = StyleSheet.create({
   savedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: V.bgElevated,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    padding: 16,
-    marginBottom: 10,
+    marginBottom: V.space.sm,
   },
   savedInfo: {
     flex: 1,

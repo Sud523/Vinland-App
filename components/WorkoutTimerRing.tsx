@@ -86,7 +86,7 @@ export function WorkoutTimerRing({
         ? V.accentMuted
         : variant === 'between'
           ? V.textDim
-          : V.accent;
+          : V.runeGlow;
 
   return (
     <View

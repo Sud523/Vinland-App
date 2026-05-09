@@ -19,6 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useUserPrefs } from '../context/UserPrefsContext';
 import { V } from '../constants/vinlandTheme';
+import { VinlandButton } from '../components/ui/VinlandButton';
+import { VinlandCard } from '../components/ui/VinlandCard';
+import { VinlandInput } from '../components/ui/VinlandInput';
+import { VinlandSectionHeader } from '../components/ui/VinlandSectionHeader';
 import { confirmAction, confirmDestructive } from '../utils/confirmDestructive';
 import { importMergeLocalDeviceData } from '../utils/importLocalDeviceData';
 import type { ActivityLevel, WeightGoalState } from '../utils/storage';
@@ -137,48 +141,42 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.sectionLabel}>Display name</Text>
+          <VinlandSectionHeader title="Display name" style={styles.sectionHeaderFirst} />
           <Text style={styles.hint}>This is how we greet you on Home.</Text>
-          <TextInput
-            value={nameDraft}
-            onChangeText={setNameDraft}
-            placeholder="Your name"
-            placeholderTextColor={V.placeholder}
-            style={styles.input}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          <Pressable
-            onPress={() => void saveName()}
-            style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryBtnText}>Save Name</Text>
-          </Pressable>
+          <VinlandCard padded style={styles.card}>
+            <VinlandInput
+              label="Your name"
+              value={nameDraft}
+              onChangeText={setNameDraft}
+              placeholder="Your name"
+              autoCapitalize="words"
+              autoCorrect={false}
+              containerStyle={styles.field}
+            />
+            <VinlandButton title="Save Name" onPress={() => void saveName()} variant="primary" />
+          </VinlandCard>
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>
-            Daily calorie goal
-          </Text>
+          <VinlandSectionHeader title="Daily calorie goal" />
           <Text style={styles.hint}>
             Used on Home when you track calories and your nutrition goals.
           </Text>
-          <TextInput
-            value={calorieDraft}
-            onChangeText={(t) => setCalorieDraft(t.replace(/[^\d]/g, ''))}
-            placeholder="e.g. 2200"
-            placeholderTextColor={V.placeholder}
-            style={styles.input}
-            keyboardType="number-pad"
-          />
-          <Pressable
-            onPress={() => void saveCalorieGoal()}
-            style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-          >
-            <Text style={styles.primaryBtnText}>Save Calorie Goal</Text>
-          </Pressable>
+          <VinlandCard padded style={styles.card}>
+            <VinlandInput
+              label="Calories"
+              value={calorieDraft}
+              onChangeText={(t) => setCalorieDraft(t.replace(/[^\d]/g, ''))}
+              placeholder="e.g. 2200"
+              keyboardType="number-pad"
+              containerStyle={styles.field}
+            />
+            <VinlandButton
+              title="Save Calorie Goal"
+              onPress={() => void saveCalorieGoal()}
+              variant="primary"
+            />
+          </VinlandCard>
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>
-            Workouts per week
-          </Text>
+          <VinlandSectionHeader title="Workouts per week" />
           <Text style={styles.hint}>How many days per week you plan to train.</Text>
           <View style={styles.chipRow}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => {
@@ -201,7 +199,7 @@ export default function SettingsScreen() {
             })}
           </View>
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Activity level</Text>
+          <VinlandSectionHeader title="Activity level" />
           <Text style={styles.hint}>How much you move outside of planned workouts.</Text>
           {ACTIVITY_OPTIONS.map((opt) => {
             const selected = activityLevel === opt.value;
@@ -229,7 +227,7 @@ export default function SettingsScreen() {
             );
           })}
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Weight goal</Text>
+          <VinlandSectionHeader title="Weight goal" />
           <Text style={styles.hint}>
             We compare your latest weight to a starting point when you choose lose or gain.
           </Text>
@@ -238,13 +236,13 @@ export default function SettingsScreen() {
               No goal yet. Log your weight on Home first, or pick an option below.
             </Text>
           ) : (
-            <View style={styles.currentGoal}>
+            <VinlandCard padded style={styles.currentGoal}>
               <Text style={styles.currentGoalLabel}>Current</Text>
               <Text style={styles.currentGoalValue}>
                 {weightGoal.mode === 'lose' ? 'Cutting' : 'Bulking'} · starting weight{' '}
                 {weightGoal.baselineWeightLb.toFixed(1)} lb
               </Text>
-            </View>
+            </VinlandCard>
           )}
           <View style={styles.goalRow}>
             <Pressable
@@ -307,13 +305,15 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>This device</Text>
+          <VinlandSectionHeader title="This device" />
           <Text style={styles.hint}>
             Use this if you used Vinland on this phone before signing in elsewhere. We’ll add any
             workouts and journal days stored only on this device that aren’t already in your
             account—nothing on your account gets replaced.
           </Text>
-          <Pressable
+          <VinlandButton
+            title="Import from this device"
+            variant="secondary"
             disabled={deviceImportBusy || accountActionBusy}
             onPress={() =>
               confirmAction(
@@ -330,14 +330,8 @@ export default function SettingsScreen() {
                     const r = await importMergeLocalDeviceData(uid);
                     const loaded = await loadData();
                     setDays(loaded);
-                    if (
-                      r.workoutTemplatesAdded === 0 &&
-                      r.journalDaysAdded === 0
-                    ) {
-                      if (
-                        r.localWorkoutCount === 0 &&
-                        r.localJournalDayCount === 0
-                      ) {
+                    if (r.workoutTemplatesAdded === 0 && r.journalDaysAdded === 0) {
+                      if (r.localWorkoutCount === 0 && r.localJournalDayCount === 0) {
                         Alert.alert(
                           'Nothing to import',
                           'We didn’t find any older Vinland data saved on this phone.',
@@ -372,19 +366,16 @@ export default function SettingsScreen() {
                 },
               )
             }
-            style={({ pressed }) => [
-              styles.importDeviceBtn,
-              (deviceImportBusy || accountActionBusy) && styles.btnDisabled,
-              pressed && !deviceImportBusy && !accountActionBusy && styles.pressed,
-            ]}>
-            <Text style={styles.importDeviceBtnText}>Import from this device</Text>
-          </Pressable>
+            style={styles.btnStacked}
+          />
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Account</Text>
+          <VinlandSectionHeader title="Account" />
           <Text style={styles.hint}>
             Sign out on this phone or browser. Your data stays tied to your account online.
           </Text>
-          <Pressable
+          <VinlandButton
+            title="Sign out"
+            variant="ghost"
             disabled={accountActionBusy || deviceImportBusy}
             onPress={() =>
               confirmDestructive(
@@ -401,19 +392,16 @@ export default function SettingsScreen() {
                 },
               )
             }
-            style={({ pressed }) => [
-              styles.signOutBtn,
-              (accountActionBusy || deviceImportBusy) && styles.btnDisabled,
-              pressed && !accountActionBusy && !deviceImportBusy && styles.pressed,
-            ]}>
-            <Text style={styles.signOutBtnText}>Sign out</Text>
-          </Pressable>
+            style={styles.btnStacked}
+          />
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Danger zone</Text>
+          <VinlandSectionHeader title="Danger zone" />
           <Text style={styles.hint}>
             Permanently delete your account and all Vinland data for it. This cannot be undone.
           </Text>
-          <Pressable
+          <VinlandButton
+            title="Delete account"
+            variant="destructive"
             disabled={accountActionBusy || deviceImportBusy}
             onPress={() =>
               confirmDestructive(
@@ -436,13 +424,8 @@ export default function SettingsScreen() {
                 },
               )
             }
-            style={({ pressed }) => [
-              styles.deleteAccountBtn,
-              (accountActionBusy || deviceImportBusy) && styles.btnDisabled,
-              pressed && !accountActionBusy && !deviceImportBusy && styles.pressed,
-            ]}>
-            <Text style={styles.deleteAccountBtnText}>Delete account</Text>
-          </Pressable>
+            style={styles.btnStacked}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -458,50 +441,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingHorizontal: V.space.xl,
+    paddingBottom: V.space.xxxl,
   },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: V.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  sectionSpaced: {
-    marginTop: 28,
-  },
+  sectionHeaderFirst: { marginTop: 0 },
   hint: {
     fontSize: 14,
     color: V.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
-  input: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.border,
-    borderRadius: V.boxRadius,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 17,
-    color: V.text,
-    backgroundColor: V.bgInput,
-    marginBottom: 12,
-  },
-  primaryBtn: {
-    backgroundColor: V.accent,
-    paddingVertical: 14,
-    borderRadius: V.boxRadius,
-    borderWidth: V.outlineWidth,
-    borderColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-  },
-  primaryBtnText: {
-    color: V.bg,
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  card: { marginBottom: V.space.md },
+  field: { marginBottom: V.space.md },
+  btnStacked: { marginTop: V.space.sm },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -521,7 +473,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   chipTextIdle: {
@@ -532,7 +484,7 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     fontSize: 17,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   optionCard: {
     padding: 16,
@@ -545,7 +497,7 @@ const styles = StyleSheet.create({
   },
   optionCardSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   optionTitleIdle: {
@@ -556,7 +508,7 @@ const styles = StyleSheet.create({
   optionTitleSelected: {
     fontSize: 17,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   optionHintIdle: {
     fontSize: 14,
@@ -577,11 +529,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   currentGoal: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderMuted,
-    padding: 14,
     marginBottom: 12,
-    backgroundColor: V.bgElevated,
   },
   currentGoalLabel: {
     fontSize: 12,
@@ -613,7 +561,7 @@ const styles = StyleSheet.create({
   },
   goalChoiceSelected: {
     borderWidth: V.outlineWidthActive,
-    borderColor: V.accent,
+    borderColor: V.runeGlowMuted,
     backgroundColor: V.surfaceComplete,
   },
   goalTitleIdle: {
@@ -624,7 +572,7 @@ const styles = StyleSheet.create({
   goalTitleSelected: {
     fontSize: 16,
     fontWeight: '700',
-    color: V.accent,
+    color: V.runeGlow,
   },
   goalHintIdle: {
     fontSize: 13,
@@ -636,46 +584,5 @@ const styles = StyleSheet.create({
     color: V.textSecondary,
     marginTop: 4,
   },
-  pressed: {
-    opacity: 0.88,
-  },
-  importDeviceBtn: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderHairline,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  importDeviceBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: V.accent,
-  },
-  signOutBtn: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderHairline,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  signOutBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: V.textSecondary,
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  deleteAccountBtn: {
-    borderWidth: V.outlineWidth,
-    borderColor: V.borderMuted,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  deleteAccountBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: V.textTertiary,
-  },
+  pressed: { opacity: 0.88 },
 });

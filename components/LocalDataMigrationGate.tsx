@@ -57,7 +57,7 @@ export function LocalDataMigrationGate({ children }: { children: React.ReactNode
   if (!prefsLoaded || !ready) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={V.accent} />
+        <ActivityIndicator size="large" color={V.runeGlow} />
       </View>
     );
   }
