@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   },
   welcome: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
     letterSpacing: -0.3,
     marginBottom: 16,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   weekday: {
     fontSize: 36,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     letterSpacing: -0.8,
   },
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
   streakPrefix: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     letterSpacing: -0.4,
   },
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 12,
   },
@@ -620,11 +620,11 @@ const styles = StyleSheet.create({
   workoutActionBtnText: {
     color: V.bg,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '400',
   },
   workoutTimer: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: 0.5,
@@ -643,7 +643,7 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
     marginBottom: 8,
   },

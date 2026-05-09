@@ -42,17 +42,18 @@ export default function MainTabs() {
         tabBarActiveTintColor: V.runeGlow,
         tabBarInactiveTintColor: V.textDim,
         tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: '700',
+          fontSize: 8,
+          lineHeight: 12,
           fontFamily: V.fontPixel,
-          marginBottom: Platform.OS === 'ios' ? 0 : 4,
+          marginBottom: Platform.OS === 'ios' ? 2 : 6,
         },
         tabBarStyle: {
           backgroundColor: V.tabBarBg,
           borderTopColor: V.tabBarBorder,
           borderTopWidth: V.outlineWidth,
-          paddingTop: 6,
-          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 12 : 10,
+          height: Platform.OS === 'ios' ? 104 : 78,
         },
       }}
     >
