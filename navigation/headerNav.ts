@@ -16,8 +16,9 @@ export const smoothStackTransition = Platform.select({
 export const headerTitleBarStyle = {
   color: V.text,
   fontWeight: '700' as const,
-  fontSize: 17,
-  lineHeight: 22,
+  fontFamily: V.fontPixel,
+  fontSize: 12,
+  lineHeight: 16,
 };
 
 export const headerTitleBarContainerStyle = {
