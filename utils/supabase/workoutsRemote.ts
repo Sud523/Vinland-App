@@ -91,64 +91,12 @@ export async function fetchSavedWorkouts(userId: string): Promise<SavedWorkout[]
 }
 
 export async function replaceSavedWorkouts(userId: string, workouts: SavedWorkout[]): Promise<void> {
-  const { error: delErr } = await supabase.from('workout_templates').delete().eq('user_id', userId);
-  if (delErr) {
-    throw delErr;
-  }
-
-  for (const w of workouts) {
-    const { data: tmpl, error: tErr } = await supabase
-      .from('workout_templates')
-      .insert({
-        user_id: userId,
-        legacy_client_id: w.id,
-        title: w.title,
-        description: w.description ?? null,
-      })
-      .select('id')
-      .single();
-
-    if (tErr || tmpl == null) {
-      throw tErr ?? new Error('Insert workout_templates failed');
-    }
-
-    const templateId = tmpl.id as string;
-
-    const blocks: { exercises: ExerciseDefinition[]; type: SectionType }[] = [
-      { type: 'warm_up', exercises: w.warmUp },
-      { type: 'workout', exercises: w.workout },
-      { type: 'cool_down', exercises: w.coolDown },
-    ];
-
-    for (let si = 0; si < blocks.length; si++) {
-      const block = blocks[si];
-      const { data: secRow, error: sErr } = await supabase
-        .from('workout_template_sections')
-        .insert({
-          template_id: templateId,
-          section_type: block.type,
-          sort_order: SECTION_ORDER.indexOf(block.type),
-        })
-        .select('id')
-        .single();
-
-      if (sErr || secRow == null) {
-        throw sErr ?? new Error('Insert section failed');
-      }
-
-      const sectionId = secRow.id as string;
-      const exRows = block.exercises.map((def, ei) => ({
-        section_id: sectionId,
-        sort_order: ei,
-        definition: def,
-      }));
-
-      if (exRows.length > 0) {
-        const { error: eErr } = await supabase.from('workout_template_exercises').insert(exRows);
-        if (eErr) {
-          throw eErr;
-        }
-      }
-    }
+  // Prefer the RPC: one server-side transaction, no partial writes.
+  // Note: userId is intentionally ignored; the RPC uses auth.uid().
+  const { error } = await supabase.rpc('replace_saved_workouts', {
+    workouts: workouts as unknown,
+  });
+  if (error) {
+    throw error;
   }
 }

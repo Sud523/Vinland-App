@@ -7,8 +7,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   InteractionManager,
   Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -61,6 +63,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
   const editId = route.params?.editId;
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDescription, setWorkoutDescription] = useState('');
   const [warmUpRows, setWarmUpRows] = useState<ExerciseRow[]>([]);
@@ -175,6 +178,9 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   const saveWorkoutToLibrary = async () => {
     Keyboard.dismiss();
+    if (isSaving) {
+      return;
+    }
     if (!validateWorkoutName()) {
       return;
     }
@@ -201,6 +207,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
     const currentEditId = editingId;
 
+    setIsSaving(true);
     try {
       // Persists the full library to Supabase (workout_templates + sections + exercises).
       if (currentEditId != null) {
@@ -235,6 +242,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         await saveSavedWorkouts([...list, nextSaved]);
       }
     } catch {
+      setIsSaving(false);
       Alert.alert(
         'Couldn’t save workout',
         'Check your connection and try again, or close and reopen the app.',
@@ -346,6 +354,15 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      <Modal visible={isSaving} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.savingBackdrop}>
+          <View style={styles.savingCard}>
+            <ActivityIndicator size="large" color={V.link} />
+            <Text style={styles.savingTitle}>Saving workout…</Text>
+            <Text style={styles.savingSub}>This can take a moment.</Text>
+          </View>
+        </View>
+      </Modal>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -429,7 +446,11 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         <Pressable
           onPressIn={() => Keyboard.dismiss()}
           onPress={() => void saveWorkoutToLibrary()}
-          style={({ pressed }) => [styles.saveLibraryBtn, pressed && styles.pressed]}
+          disabled={isSaving}
+          style={({ pressed }) => [
+            styles.saveLibraryBtn,
+            (pressed || isSaving) && styles.pressed,
+          ]}
         >
           <Text style={styles.saveLibraryBtnText}>
             {editingId != null ? 'Save Changes' : 'Save Workout'}
@@ -439,6 +460,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         <Pressable
           onPressIn={() => Keyboard.dismiss()}
           onPress={() => void addToToday()}
+          disabled={isSaving}
           style={({ pressed }) => [styles.addTodayBtn, pressed && styles.pressed]}
         >
           <Text style={styles.addTodayBtnText}>Add to Today</Text>
@@ -448,6 +470,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
           <Pressable
             onPress={() => void deleteWorkout()}
             style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
+            disabled={isSaving}
           >
             <Text style={styles.deleteBtnText}>Delete Workout</Text>
           </Pressable>
@@ -461,6 +484,36 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: V.bg,
+  },
+  savingBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingHorizontal: 28,
+  },
+  savingCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: V.bgElevated,
+    borderRadius: V.boxRadius,
+    borderWidth: V.outlineWidth,
+    borderColor: V.border,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    gap: 10,
+  },
+  savingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: V.text,
+  },
+  savingSub: {
+    fontSize: 14,
+    color: V.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   scroll: {
     flex: 1,
