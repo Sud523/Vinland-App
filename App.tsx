@@ -7,7 +7,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -62,19 +62,8 @@ export default function App() {
     );
   }
 
-  // Global pixel font: applies to all Text/TextInput unless overridden.
-  // (React Navigation headers need explicit styles; we set those separately.)
-  Text.defaultProps = Text.defaultProps ?? {};
-  Text.defaultProps.style = [
-    { fontFamily: V.fontPixel, fontWeight: '400' },
-    // Preserve any existing defaults if present.
-    Text.defaultProps.style,
-  ];
-  TextInput.defaultProps = TextInput.defaultProps ?? {};
-  TextInput.defaultProps.style = [
-    { fontFamily: V.fontPixel, fontWeight: '400' },
-    TextInput.defaultProps.style,
-  ];
+  // Pixel font for app Text/TextInput is applied in `shims/react-native.js` (React 19
+  // no longer honors Text.defaultProps). Navigation chrome still sets font explicitly.
 
   return (
     <SafeAreaProvider>

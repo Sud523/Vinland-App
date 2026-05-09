@@ -8,6 +8,8 @@ const { getDefaultConfig } = require('expo/metro-config');
 const config = getDefaultConfig(__dirname);
 
 const defaultResolveRequest = config.resolver.resolveRequest;
+const shimReactNative = path.join(__dirname, 'shims', 'react-native.js');
+const realReactNativeEntry = require.resolve('react-native');
 
 /**
  * Metro on Windows sometimes fails to resolve `import … from './fabric'` in
@@ -16,6 +18,7 @@ const defaultResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const origin = context.originModulePath;
   const originPosix = origin ? origin.replace(/\\/g, '/') : '';
+
   if (
     moduleName === './fabric' &&
     originPosix.includes('react-native-svg/') &&
@@ -32,6 +35,20 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       ),
       type: 'sourceFile',
     };
+  }
+
+  // App source uses a Text/TextInput shim (React 19 drops defaultProps on RN's function Text).
+  if (moduleName === 'react-native') {
+    const fromShim =
+      originPosix.endsWith('/shims/react-native.js') ||
+      originPosix.endsWith('\\shims\\react-native.js');
+    const fromNodeModules = originPosix.includes('/node_modules/');
+    if (fromShim) {
+      return { filePath: realReactNativeEntry, type: 'sourceFile' };
+    }
+    if (!fromNodeModules && origin) {
+      return { filePath: shimReactNative, type: 'sourceFile' };
+    }
   }
 
   if (defaultResolveRequest) {

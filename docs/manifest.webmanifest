@@ -1,0 +1,23 @@
+{
+  "name": "Vinland",
+  "short_name": "Vinland",
+  "start_url": "/Vinland-App/",
+  "scope": "/Vinland-App/",
+  "display": "standalone",
+  "background_color": "#070A0F",
+  "theme_color": "#070A0F",
+  "icons": [
+    {
+      "src": "/Vinland-App/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Vinland-App/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

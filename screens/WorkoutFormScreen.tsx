@@ -4,7 +4,7 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   InteractionManager,
@@ -24,6 +24,7 @@ import { ExerciseEditorCard } from '../components/ExerciseEditorCard';
 import { V } from '../constants/vinlandTheme';
 import { VinlandButton } from '../components/ui/VinlandButton';
 import { VinlandInput } from '../components/ui/VinlandInput';
+import { VinlandConfirmDialog } from '../components/ui/VinlandConfirmDialog';
 import { VinlandModalOverlay } from '../components/ui/VinlandModalOverlay';
 import type { WorkoutsStackParamList } from '../navigation/types';
 import type { Day, ExerciseDefinition, ExerciseFormInput, SavedWorkout } from '../types';
@@ -65,6 +66,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [savingLabel, setSavingLabel] = useState<'save' | 'add' | 'delete'>('save');
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDescription, setWorkoutDescription] = useState('');
@@ -80,6 +82,12 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     setWorkoutRows(rowsFromDefinitions(w.workout));
     setCoolDownRows(rowsFromDefinitions(w.coolDown));
   }, []);
+
+  useEffect(() => {
+    if (editingId == null) {
+      setDeleteConfirmVisible(false);
+    }
+  }, [editingId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -336,18 +344,17 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
     }
   };
 
-  const confirmDeleteWorkout = () => {
+  const openDeleteConfirm = () => {
     if (editingId == null || isSaving) {
       return;
     }
-    Alert.alert(
-      'Delete this workout?',
-      'This will remove it from your library.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => void deleteWorkout() },
-      ],
-    );
+    Keyboard.dismiss();
+    setDeleteConfirmVisible(true);
+  };
+
+  const confirmDeleteWorkout = () => {
+    setDeleteConfirmVisible(false);
+    void deleteWorkout();
   };
 
   const renderSectionList = (
@@ -400,6 +407,16 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
               ? 'Adding to today…'
               : 'Saving workout…'
         }
+      />
+      <VinlandConfirmDialog
+        visible={deleteConfirmVisible && !isSaving}
+        title="Delete this workout?"
+        message="This will remove it from your library."
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        destructive
+        onCancel={() => setDeleteConfirmVisible(false)}
+        onConfirm={confirmDeleteWorkout}
       />
       <ScrollView
         style={styles.scroll}
@@ -503,7 +520,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
               <View style={styles.actionSpacer} />
               <VinlandButton
                 title="Delete Workout"
-                onPress={confirmDeleteWorkout}
+                onPress={openDeleteConfirm}
                 disabled={isSaving}
                 variant="destructive"
               />
