@@ -478,12 +478,12 @@ const styles = StyleSheet.create({
   },
   chipTextIdle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textDim,
   },
   chipTextSelected: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   optionCard: {
@@ -502,12 +502,12 @@ const styles = StyleSheet.create({
   },
   optionTitleIdle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
   },
   optionTitleSelected: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   optionHintIdle: {
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   currentGoalLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   currentGoalValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   goalRow: {
@@ -566,12 +566,12 @@ const styles = StyleSheet.create({
   },
   goalTitleIdle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
   },
   goalTitleSelected: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   goalHintIdle: {

@@ -35,7 +35,7 @@ export default function MainTabs() {
           borderBottomWidth: V.outlineWidth,
           borderBottomColor: V.tabBarBorder,
         },
-        headerTitleStyle: { color: V.text, fontWeight: '700', fontFamily: V.fontPixel, fontSize: 12 },
+        headerTitleStyle: { color: V.text, fontWeight: '400', fontFamily: V.fontPixel, fontSize: 12 },
         headerTintColor: V.text,
         headerShadowVisible: false,
         headerRight: () => <SettingsHeaderButton />,

@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   pickName: {
     flex: 1,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   pickNameDone: {
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   doneBadge: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.onComplete,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -530,13 +530,13 @@ const styles = StyleSheet.create({
   },
   timerExerciseName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     marginBottom: 6,
   },
   phaseTitle: {
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
   },
   phaseRest: {
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   btnStartText: {
     color: V.bg,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   btnStop: {
     backgroundColor: V.surfaceComplete,
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   btnStopText: {
     color: V.text,
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   btnDisabled: {
     opacity: 0.45,
@@ -590,6 +590,6 @@ const styles = StyleSheet.create({
   resetBtnText: {
     fontSize: 16,
     color: V.link,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });

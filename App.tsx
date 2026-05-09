@@ -76,20 +76,6 @@ export default function App() {
     TextInput.defaultProps.style,
   ];
 
-  // Some screens set `fontWeight` heavily; on certain platforms this can cause custom-font
-  // fallback. Patch Text rendering once to force our pixel font + normal weight.
-  const textAny = Text as unknown as { __vinlandPatched?: boolean; render?: (...args: any[]) => any };
-  if (!textAny.__vinlandPatched && typeof Text.render === 'function') {
-    const oldRender = Text.render;
-    Text.render = function render(...args: any[]) {
-      const origin = oldRender.apply(this, args);
-      return React.cloneElement(origin, {
-        style: [{ fontFamily: V.fontPixel, fontWeight: '400' }, origin.props.style],
-      });
-    };
-    textAny.__vinlandPatched = true;
-  }
-
   return (
     <SafeAreaProvider>
       <RootErrorBoundary>

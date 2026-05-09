@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   },
   dayTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
   },
   dayKey: {
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   weightHint: {
     fontSize: 14,
     color: V.accentMuted,
-    fontWeight: '500',
+    fontWeight: '400',
     marginBottom: 8,
   },
   workoutList: {
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
   },
   segmentDoneLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.onComplete,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
   },
   pastHint: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     marginBottom: 6,
   },
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
   },
   workoutStatusSymbol: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     fontVariant: ['tabular-nums'],
   },
@@ -721,19 +721,19 @@ const styles = StyleSheet.create({
   },
   workoutBlockTitle: {
     fontSize: 19,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     letterSpacing: -0.3,
   },
   workoutExerciseTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: 'rgba(255, 255, 255, 0.88)',
     letterSpacing: -0.2,
   },
   optionalBadge: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: V.textTertiary,
   },
   workoutDetails: {
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   },
   restDayHint: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.accentMuted,
     marginBottom: 6,
   },
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   },
   pickBtnText: {
     color: V.bg,
-    fontWeight: '800',
+    fontWeight: '400',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
   },
   modalSub: {
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontSize: 17,
     color: V.link,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   modalList: {
     padding: 20,
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
   },
   savedTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   savedRowDescription: {

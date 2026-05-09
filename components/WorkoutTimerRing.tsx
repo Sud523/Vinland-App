@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 44,
-    fontWeight: '300',
+    fontWeight: '400',
     color: V.text,
     fontVariant: ['tabular-nums'],
   },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   caption: {
     marginTop: 6,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textAlign: 'center',
     textTransform: 'uppercase',

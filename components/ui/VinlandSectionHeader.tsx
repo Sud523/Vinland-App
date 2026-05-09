@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 10,
     fontFamily: V.fontPixel,
-    fontWeight: '800',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1.6,

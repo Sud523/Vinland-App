@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: V.fontPixel,
-    fontWeight: '800',
+    fontWeight: '400',
     color: V.text,
   },
   sub: {

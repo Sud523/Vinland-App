@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 12,
     letterSpacing: -0.5,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   btnText: {
     color: V.bg,
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '400',
   },
   chipRow: {
     flexDirection: 'row',
@@ -557,12 +557,12 @@ const styles = StyleSheet.create({
   },
   chipTextIdle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textDim,
   },
   chipTextSelected: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   optionCard: {
@@ -581,12 +581,12 @@ const styles = StyleSheet.create({
   },
   optionTitleIdle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
   },
   optionTitleSelected: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   optionHintIdle: {
@@ -625,12 +625,12 @@ const styles = StyleSheet.create({
   },
   goalTitleIdle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
   },
   goalTitleSelected: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.runeGlow,
   },
   goalHintIdle: {
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.link,
   },
 });

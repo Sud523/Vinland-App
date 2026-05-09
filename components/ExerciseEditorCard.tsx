@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
   },
   cardTitleFlex: {
@@ -908,11 +908,11 @@ const styles = StyleSheet.create({
   removeTop: {
     color: V.destructive,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   fieldLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   chipIdle: {},
   chipText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
   },
   chipTextOn: {
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
   optionalCheckMark: {
     color: V.runeGlow,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     lineHeight: 16,
   },
   optionalTextCol: {
@@ -1012,7 +1012,7 @@ const styles = StyleSheet.create({
   },
   optionalTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 4,
   },
@@ -1055,7 +1055,7 @@ const styles = StyleSheet.create({
   },
   failureChipText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
   },
   failureChipTextOn: {
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   phaseLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
   },
   removePhase: {
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     color: V.link,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   restHint: {
     fontSize: 13,

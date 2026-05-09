@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: V.bgElevated,
     padding: 16,
   },
-  previewTitle: { fontSize: 20, fontWeight: '800', color: V.text },
+  previewTitle: { fontSize: 20, fontWeight: '400', color: V.text },
   previewSub: { marginTop: 8, fontSize: 14, color: V.textSecondary, lineHeight: 20 },
   hint: { marginTop: 14, fontSize: 14, color: V.textSecondary, lineHeight: 20 },
   section: { marginTop: 18 },
@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   exerciseHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  exerciseTitle: { flex: 1, fontSize: 16, fontWeight: '800', color: V.text },
-  optionalTag: { fontSize: 12, fontWeight: '700', color: V.textTertiary },
+  exerciseTitle: { flex: 1, fontSize: 16, fontWeight: '400', color: V.text },
+  optionalTag: { fontSize: 12, fontWeight: '400', color: V.textTertiary },
   exerciseLine: { marginTop: 4, fontSize: 14, color: V.textSecondary, lineHeight: 19 },
   exerciseNotes: { marginTop: 8, fontSize: 13, color: V.textTertiary, lineHeight: 18 },
   exportBtn: {
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 0,
   },
-  missingTitle: { fontSize: 16, fontWeight: '800', color: V.text, marginBottom: 6 },
+  missingTitle: { fontSize: 16, fontWeight: '400', color: V.text, marginBottom: 6 },
   missingText: { fontSize: 14, color: V.textSecondary, lineHeight: 20 },
 });
 

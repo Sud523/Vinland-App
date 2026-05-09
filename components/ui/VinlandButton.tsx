@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     fontFamily: V.fontPixel,
-    fontWeight: '700',
+    fontWeight: '400',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },

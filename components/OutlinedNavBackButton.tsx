@@ -103,13 +103,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.link,
   },
   labelCompact: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '600',
+    fontWeight: '400',
     marginTop: Platform.OS === 'ios' ? 1 : 0,
   },
 });

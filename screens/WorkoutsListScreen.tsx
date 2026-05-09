@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   savedTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   savedMeta: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.link,
   },
   pressed: {

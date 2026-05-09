@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   checkboxMark: {
     color: V.runeGlow,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     lineHeight: 15,
     marginTop: -1,
   },
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: V.text,
     letterSpacing: -0.24,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   labelDone: {
     textDecorationLine: 'line-through',

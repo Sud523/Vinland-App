@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   statHint: {
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   },
   goalModeLabel: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
   },
   goalModeHint: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   goalHeadline: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
     lineHeight: 24,
   },

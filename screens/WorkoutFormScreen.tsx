@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   field: { marginBottom: V.space.md },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginTop: V.space.md,
     marginBottom: V.space.sm,
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   addExerciseText: {
     fontSize: 17,
     color: V.link,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   actions: {
     marginTop: V.space.sm,

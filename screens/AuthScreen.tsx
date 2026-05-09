@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 8,
   },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: V.space.md,
   },
-  busyText: { color: V.textSecondary, fontSize: 14, fontWeight: '600' },
+  busyText: { color: V.textSecondary, fontSize: 14, fontWeight: '400' },
   switch: {
     marginTop: V.space.lg,
     alignItems: 'center',

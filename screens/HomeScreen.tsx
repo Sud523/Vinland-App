@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   },
   sectionHeaderText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 10,
     marginTop: 4,
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
   },
   nutritionGoalLine: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
     marginBottom: 16,
   },
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
   },
   caloriesOverLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
   nutritionLockedHint: {
     marginTop: 4,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textDim,
   },
 });

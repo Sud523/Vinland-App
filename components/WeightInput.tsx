@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   savedForTodayLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
     paddingVertical: 10,
     paddingHorizontal: 4,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: V.bg,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   hint: {
     marginTop: 10,

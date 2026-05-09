@@ -82,13 +82,13 @@ const styles = StyleSheet.create({
   },
   pct: {
     fontSize: 44,
-    fontWeight: '200',
+    fontWeight: '400',
     color: V.text,
     fontVariant: ['tabular-nums'],
   },
   pctSuffix: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textSecondary,
     marginTop: 10,
     marginLeft: 2,
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   caption: {
     marginTop: 12,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,

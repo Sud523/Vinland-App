@@ -48,13 +48,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.text,
     marginBottom: 16,
   },
   section: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.runeGlow,
     marginTop: 20,
     marginBottom: 8,
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   em: {
-    fontWeight: '600',
+    fontWeight: '400',
     color: V.text,
   },
   mono: {

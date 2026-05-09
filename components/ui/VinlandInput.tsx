@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontFamily: V.fontPixel,
-    fontWeight: '700',
+    fontWeight: '400',
     color: V.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
