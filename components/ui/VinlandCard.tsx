@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
   // Explicit width prevents shrink-to-content in ScrollView content containers (notably on web).
   shell: { alignSelf: 'stretch', width: '100%' },
   outer: {
+    alignSelf: 'stretch',
     borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,
     borderColor: V.pixelOuterBorder,
@@ -53,6 +54,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   inner: {
+    alignSelf: 'stretch',
     borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,
     borderColor: V.pixelInnerBorder,
