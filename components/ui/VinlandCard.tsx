@@ -43,7 +43,8 @@ export function VinlandCard({
 }
 
 const styles = StyleSheet.create({
-  shell: { alignSelf: 'stretch' },
+  // Explicit width prevents shrink-to-content in ScrollView content containers (notably on web).
+  shell: { alignSelf: 'stretch', width: '100%' },
   outer: {
     borderRadius: V.boxRadius,
     borderWidth: V.outlineWidth,

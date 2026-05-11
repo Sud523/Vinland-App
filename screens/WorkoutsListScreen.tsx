@@ -119,6 +119,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: V.space.xl,
     paddingTop: V.space.sm,
+    width: '100%',
   },
   sub: {
     fontSize: 15,
