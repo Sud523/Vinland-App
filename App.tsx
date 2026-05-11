@@ -6,7 +6,7 @@ import { DarkTheme, NavigationContainer, Theme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ import MainTabs from './navigation/MainTabs';
 import type { RootStackParamList } from './navigation/types';
 import AuthScreen from './screens/AuthScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import StatisticsSettingsScreen from './screens/StatisticsSettingsScreen';
 import SupabaseConfigErrorScreen from './screens/SupabaseConfigErrorScreen';
 import { isSupabaseConfigured } from './utils/supabase';
 
@@ -51,6 +52,19 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     PressStart2P_400Regular,
   });
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (meta) {
+      meta.setAttribute(
+        'content',
+        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no',
+      );
+    }
+  }, []);
 
   if (!fontsLoaded) {
     return (
@@ -121,6 +135,54 @@ function AppShell() {
                   options={({ navigation }) => ({
                     headerShown: true,
                     title: 'Settings',
+                    headerBackVisible: false,
+                    presentation: 'card',
+                    ...smoothStackTransition,
+                    ...Platform.select({
+                      ios: {
+                        fullScreenGestureEnabled: true,
+                        unstable_headerLeftItems: () => [
+                          {
+                            type: 'custom' as const,
+                            hidesSharedBackground: true,
+                            element: (
+                              <OutlinedNavBackButton
+                                compact
+                                onPress={() => navigation.goBack()}
+                              />
+                            ),
+                          },
+                        ],
+                      },
+                      default: {
+                        headerLeft: () => (
+                          <OutlinedNavBackButton compact onPress={() => navigation.goBack()} />
+                        ),
+                      },
+                    }),
+                    headerLeftContainerStyle: {
+                      paddingLeft: Platform.OS === 'ios' ? 8 : 6,
+                      paddingRight: 6,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    },
+                    headerTitleAlign: 'left',
+                    headerTitleContainerStyle: headerTitleBarContainerStyle,
+                    headerStyle: {
+                      backgroundColor: V.bg,
+                    },
+                    headerTintColor: V.text,
+                    headerTitleStyle: headerTitleBarStyle,
+                    contentStyle: { backgroundColor: V.bg },
+                    headerShadowVisible: false,
+                  })}
+                />
+                <Stack.Screen
+                  name="StatisticsSettings"
+                  component={StatisticsSettingsScreen}
+                  options={({ navigation }) => ({
+                    headerShown: true,
+                    title: 'Statistics data',
                     headerBackVisible: false,
                     presentation: 'card',
                     ...smoothStackTransition,

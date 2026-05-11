@@ -196,6 +196,22 @@ export async function saveWeightGoal(state: WeightGoalState): Promise<void> {
   }
 }
 
+/** Clears cut/bulk baseline on the profile (Stats weight-goal section). */
+export async function clearWeightGoal(): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      weight_goal_mode: null,
+      baseline_weight_lb: null,
+      baseline_date: null,
+    })
+    .eq('id', uid);
+  if (error) {
+    throw error;
+  }
+}
+
 /** Raw journal snapshot from AsyncStorage — migration helper only. */
 export async function loadLocalJournalForMigration(): Promise<Day[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);

@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     borderRadius: V.boxRadius,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 14,
+    fontSize: 16,
     color: V.text,
     backgroundColor: 'transparent',
   },

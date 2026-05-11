@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
     borderRadius: V.boxRadius,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 16,
     color: V.text,
     backgroundColor: V.bgInput,
     marginBottom: 14,

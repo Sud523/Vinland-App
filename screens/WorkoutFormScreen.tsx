@@ -4,18 +4,17 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   InteractionManager,
   Keyboard,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import type { RenderItemParams } from 'react-native-draggable-flatlist';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,6 +62,8 @@ function defaultWorkoutRows(): ExerciseRow[] {
 export default function WorkoutFormScreen({ navigation, route }: Props) {
   const tabBarHeight = useBottomTabBarHeight();
   const editId = route.params?.editId;
+  /** Links parent scroll + draggable lists so vertical scroll works on web (e.g. GitHub Pages on iPhone). */
+  const formScrollRef = useRef<React.ComponentRef<typeof GestureScrollView>>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -371,6 +372,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
       <DraggableFlatList
         scrollEnabled={false}
         nestedScrollEnabled
+        simultaneousHandlers={formScrollRef}
         data={rows}
         keyExtractor={(item) => item.id}
         onDragEnd={({ data }) => setRows(data)}
@@ -417,7 +419,8 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         onCancel={() => setDeleteConfirmVisible(false)}
         onConfirm={confirmDeleteWorkout}
       />
-      <ScrollView
+      <GestureScrollView
+        ref={formScrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.listContent,
@@ -526,7 +529,7 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
             </>
           ) : null}
         </View>
-      </ScrollView>
+      </GestureScrollView>
     </SafeAreaView>
   );
 }

@@ -1,7 +1,8 @@
 /**
  * Profile editor: display name, weekly targets, calorie goal, cut/bulk baseline commits.
  */
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -27,6 +28,7 @@ import { confirmAction, confirmDestructive } from '../utils/confirmDestructive';
 import { importMergeLocalDeviceData } from '../utils/importLocalDeviceData';
 import type { ActivityLevel, WeightGoalState } from '../utils/storage';
 import { loadData, loadWeightGoal } from '../utils/storage';
+import type { RootStackParamList } from '../navigation/types';
 import { commitWeightGoalForMode } from '../utils/weightGoalCommit';
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
@@ -40,6 +42,7 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 ];
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signOut, deleteAccount, user } = useAuth();
   const {
     displayName,
@@ -304,6 +307,18 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
           </View>
+
+          <VinlandSectionHeader title="Statistics" />
+          <Text style={styles.hint}>
+            Reset journal or profile data that feeds the Stats tab, one metric at a time.
+          </Text>
+          <VinlandButton
+            title="Statistics data"
+            variant="secondary"
+            disabled={accountActionBusy || deviceImportBusy}
+            style={styles.btnStacked}
+            onPress={() => navigation.navigate('StatisticsSettings')}
+          />
 
           <VinlandSectionHeader title="This device" />
           <Text style={styles.hint}>

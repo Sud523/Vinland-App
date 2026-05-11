@@ -150,6 +150,11 @@ function patchIndexHtmlForPwaAndFont(base) {
   const indexPath = join(docs, 'index.html');
   let html = readFileSync(indexPath, 'utf8');
 
+  html = html.replace(
+    /<meta\s+name="viewport"\s+content="[^"]*"\s*\/?>/i,
+    '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no" />',
+  );
+
   const fontAbs = findFileRecursive(
     join(docs, 'assets'),
     (n) => n.endsWith('.ttf') && n.includes('PressStart2P'),

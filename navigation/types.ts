@@ -4,6 +4,7 @@
 export type RootStackParamList = {
   Main: undefined;
   Settings: undefined;
+  StatisticsSettings: undefined;
 };
 
 export type WorkoutsStackParamList = {

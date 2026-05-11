@@ -1,20 +1,67 @@
 /**
- * Loads and plays a short WAV when a timer segment completes (expo-av).
- * Configures audio session for mix/duck so other apps recover cleanly after chimes.
+ * Short WAV chimes for the interval timer (expo-av on native; HTMLAudio on web).
+ * Android must use a valid `InterruptionModeAndroid` (there is no MixWithOthers on Android).
  */
+import { Asset } from 'expo-asset';
 import {
   Audio,
   InterruptionModeAndroid,
   InterruptionModeIOS,
 } from 'expo-av';
+import { Platform } from 'react-native';
 
-let segmentChime: Audio.Sound | null = null;
-let startChime: Audio.Sound | null = null;
-let endChime: Audio.Sound | null = null;
+const CHIME_ASSET = require('../assets/sounds/timer-segment-done.wav');
+
+let chime: Audio.Sound | null = null;
 let audioModeReady = false;
 
-/** Configures iOS/Android playback modes before creating or replaying sound instances. */
+/** Resolved file URL for web playback (expo-av + autoplay timing is flaky in browsers). */
+let webChimeUri: string | null = null;
+let webChimeUriPromise: Promise<string> | null = null;
+
+async function ensureWebChimeUri(): Promise<string> {
+  if (webChimeUri) {
+    return webChimeUri;
+  }
+  if (webChimeUriPromise) {
+    return webChimeUriPromise;
+  }
+  webChimeUriPromise = (async () => {
+    const asset = Asset.fromModule(CHIME_ASSET);
+    await asset.downloadAsync();
+    const uri = asset.localUri ?? asset.uri;
+    if (!uri) {
+      throw new Error('Timer chime asset has no URI');
+    }
+    webChimeUri = uri;
+    return uri;
+  })();
+  return webChimeUriPromise;
+}
+
+function playWebChime(): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return;
+  }
+  const uri = webChimeUri;
+  if (!uri) {
+    return;
+  }
+  try {
+    const el = new Audio(uri);
+    el.volume = 1;
+    void el.play().catch(() => {
+      /* autoplay / decode */
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 async function ensureTimerAudioMode(): Promise<void> {
+  if (Platform.OS === 'web') {
+    return;
+  }
   if (audioModeReady) {
     return;
   }
@@ -22,91 +69,99 @@ async function ensureTimerAudioMode(): Promise<void> {
     allowsRecordingIOS: false,
     playsInSilentModeIOS: true,
     staysActiveInBackground: false,
-    // Don’t interrupt whatever the user is already listening to.
     interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+    // Android only supports DoNotMix | DuckOthers — invalid values throw and block all playback.
+    interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
     shouldDuckAndroid: false,
     playThroughEarpieceAndroid: false,
-    interruptionModeAndroid: InterruptionModeAndroid.MixWithOthers,
   });
   audioModeReady = true;
 }
 
-/** Lazily creates the shared `Audio.Sound` from bundled asset; no-op if already loaded. */
 export async function loadTimerChime(): Promise<void> {
-  if (segmentChime && startChime && endChime) {
+  if (Platform.OS === 'web') {
+    try {
+      await ensureWebChimeUri();
+    } catch {
+      webChimeUriPromise = null;
+    }
     return;
   }
-  await ensureTimerAudioMode();
-  const asset = require('../assets/sounds/timer-segment-done.wav');
 
-  const [segment, start, end] = await Promise.all([
-    segmentChime
-      ? Promise.resolve({ sound: segmentChime })
-      : Audio.Sound.createAsync(asset, { shouldPlay: false }),
-    startChime
-      ? Promise.resolve({ sound: startChime })
-      : Audio.Sound.createAsync(asset, { shouldPlay: false }),
-    endChime
-      ? Promise.resolve({ sound: endChime })
-      : Audio.Sound.createAsync(asset, { shouldPlay: false }),
-  ]);
-
-  segmentChime = segment.sound;
-  startChime = start.sound;
-  endChime = end.sound;
+  if (chime) {
+    return;
+  }
+  try {
+    await ensureTimerAudioMode();
+  } catch {
+    // Still attempt load; some devices recover after playback starts.
+  }
+  const { sound } = await Audio.Sound.createAsync(CHIME_ASSET, { shouldPlay: false });
+  chime = sound;
 }
 
-/** Replays the chime from the start; re-asserts audio mode for reliability. */
 export async function playTimerChime(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await loadTimerChime();
+    playWebChime();
+    return;
+  }
   try {
     await loadTimerChime();
-    if (!segmentChime) {
+    if (!chime) {
       return;
     }
-    await segmentChime.replayAsync();
+    await chime.replayAsync();
   } catch {
-    // ignore
+    /* ignore */
   }
 }
 
-/** Short sound when the user starts (or auto-starts) a timer. */
 export async function playTimerStartChime(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await loadTimerChime();
+    playWebChime();
+    return;
+  }
   try {
     await loadTimerChime();
-    if (!startChime) {
+    if (!chime) {
       return;
     }
-    await startChime.replayAsync();
+    await chime.replayAsync();
   } catch {
-    // ignore
+    /* ignore */
   }
 }
 
-/** Short sound when the timer finishes the final segment. */
 export async function playTimerEndChime(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await loadTimerChime();
+    playWebChime();
+    return;
+  }
   try {
     await loadTimerChime();
-    if (!endChime) {
+    if (!chime) {
       return;
     }
-    await endChime.replayAsync();
+    await chime.replayAsync();
   } catch {
-    // ignore
+    /* ignore */
   }
 }
 
-/** Releases native sound resources (call on screen unmount or app background if desired). */
 export async function unloadTimerChime(): Promise<void> {
-  const sounds: Array<Audio.Sound | null> = [segmentChime, startChime, endChime];
-  for (const s of sounds) {
+  webChimeUri = null;
+  webChimeUriPromise = null;
+  if (chime) {
     try {
-      s?.setOnPlaybackStatusUpdate(null);
-      await s?.unloadAsync();
+      chime.setOnPlaybackStatusUpdate(null);
+      await chime.unloadAsync();
     } catch {
-      // ignore
+      /* ignore */
     }
+    chime = null;
   }
-  segmentChime = null;
-  startChime = null;
-  endChime = null;
+  audioModeReady = false;
 }
