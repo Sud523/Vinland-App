@@ -1,17 +1,14 @@
 /**
  * Per-stat resets for metrics shown on the Stats tab (journal + weight goal profile).
  */
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { V } from '../constants/vinlandTheme';
 import { VinlandButton } from '../components/ui/VinlandButton';
 import { VinlandCard } from '../components/ui/VinlandCard';
 import { VinlandSectionHeader } from '../components/ui/VinlandSectionHeader';
-import type { RootStackParamList } from '../navigation/types';
 import type { Day } from '../types';
 import { confirmDestructive } from '../utils/confirmDestructive';
 import {
@@ -23,15 +20,14 @@ import {
 } from '../utils/statResets';
 import { clearWeightGoal, loadData, saveData } from '../utils/storage';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'StatisticsSettings'>;
-
 async function saveJournalTransform(transform: (days: Day[]) => Day[]): Promise<void> {
   const loaded = await loadData();
   await saveData(transform(loaded));
 }
 
 export default function StatisticsSettingsScreen() {
-  const tabBarHeight = useBottomTabBarHeight();
+  /** Root stack screen — not inside tabs, so do not use `useBottomTabBarHeight`. */
+  const insets = useSafeAreaInsets();
 
   const runJournalReset = (
     title: string,
@@ -75,7 +71,7 @@ export default function StatisticsSettingsScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: tabBarHeight + 24 },
+          { paddingBottom: insets.bottom + 24 },
         ]}
         keyboardShouldPersistTaps="handled"
       >
