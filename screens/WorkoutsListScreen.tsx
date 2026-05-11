@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: V.space.xl,
     paddingTop: V.space.sm,
     width: '100%',
+    alignItems: 'stretch',
   },
   sub: {
     fontSize: 15,
@@ -137,6 +138,7 @@ const styles = StyleSheet.create({
   },
   savedRow: {
     width: '100%',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: V.space.sm,
