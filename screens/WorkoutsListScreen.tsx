@@ -65,43 +65,45 @@ export default function WorkoutsListScreen({ navigation }: Props) {
           </VinlandCard>
         ) : (
           savedList.map((w) => (
-            <VinlandCard key={w.id} style={styles.savedRow} padded>
-              <View style={styles.savedInfo}>
-                <Text style={styles.savedTitle}>{savedWorkoutLabel(w)}</Text>
-                {w.description ? (
-                  <Text style={styles.savedDescription} numberOfLines={2}>
-                    {w.description}
+            <VinlandCard key={w.id} style={styles.savedCard} padded>
+              <View style={styles.savedRow}>
+                <View style={styles.savedInfo}>
+                  <Text style={styles.savedTitle}>{savedWorkoutLabel(w)}</Text>
+                  {w.description ? (
+                    <Text style={styles.savedDescription} numberOfLines={2}>
+                      {w.description}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.savedMeta}>
+                    {savedWorkoutExerciseCount(w)} exercise
+                    {savedWorkoutExerciseCount(w) === 1 ? '' : 's'}
                   </Text>
-                ) : null}
-                <Text style={styles.savedMeta}>
-                  {savedWorkoutExerciseCount(w)} exercise
-                  {savedWorkoutExerciseCount(w) === 1 ? '' : 's'}
-                </Text>
-              </View>
-              <View style={styles.rowActions}>
-                <Pressable
-                  onPress={() =>
-                    navigation.navigate('WorkoutExportPreview', { workoutId: w.id })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Download workout as PDF"
-                  style={({ pressed }) => [
-                    styles.iconBtn,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Ionicons name="download-outline" size={18} color={V.link} />
-                </Pressable>
+                </View>
+                <View style={styles.rowActions}>
+                  <Pressable
+                    onPress={() =>
+                      navigation.navigate('WorkoutExportPreview', { workoutId: w.id })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Download workout as PDF"
+                    style={({ pressed }) => [
+                      styles.iconBtn,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Ionicons name="download-outline" size={18} color={V.link} />
+                  </Pressable>
 
-                <Pressable
-                  onPress={() => navigation.navigate('WorkoutForm', { editId: w.id })}
-                  style={({ pressed }) => [
-                    styles.editBtn,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={styles.editBtnText}>Edit</Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => navigation.navigate('WorkoutForm', { editId: w.id })}
+                    style={({ pressed }) => [
+                      styles.editBtn,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.editBtnText}>Edit</Text>
+                  </Pressable>
+                </View>
               </View>
             </VinlandCard>
           ))
@@ -136,12 +138,15 @@ const styles = StyleSheet.create({
     color: V.textSecondary,
     lineHeight: 22,
   },
-  savedRow: {
+  savedCard: {
     width: '100%',
     alignSelf: 'stretch',
+    marginBottom: V.space.sm,
+  },
+  savedRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: V.space.sm,
   },
   savedInfo: {
     flex: 1,
@@ -166,6 +171,7 @@ const styles = StyleSheet.create({
   rowActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     gap: 10,
   },
   iconBtn: {
