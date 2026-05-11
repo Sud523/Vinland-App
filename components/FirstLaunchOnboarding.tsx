@@ -105,7 +105,7 @@ export function FirstLaunchOnboarding() {
       <Modal visible animationType="fade" presentationStyle="fullScreen">
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={V.text} />
+            <ActivityIndicator size="large" color={V.runeGlow} />
           </View>
         </SafeAreaView>
       </Modal>
@@ -373,7 +373,11 @@ export function FirstLaunchOnboarding() {
                   use your latest weigh-in when you&apos;re ready.
                 </Text>
                 {busy ? (
-                  <ActivityIndicator size="large" color={V.text} style={styles.goalBusy} />
+                  <ActivityIndicator
+                    size="large"
+                    color={V.runeGlow}
+                    style={styles.goalBusy}
+                  />
                 ) : (
                   <>
                     <View style={styles.goalRow}>

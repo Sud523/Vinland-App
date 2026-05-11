@@ -117,7 +117,7 @@ export default function StatsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={V.text} />
+          <ActivityIndicator size="large" color={V.runeGlow} />
         </View>
       </SafeAreaView>
     );

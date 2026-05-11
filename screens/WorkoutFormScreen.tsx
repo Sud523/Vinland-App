@@ -375,7 +375,6 @@ export default function WorkoutFormScreen({ navigation, route }: Props) {
         keyExtractor={(item) => item.id}
         onDragEnd={({ data }) => setRows(data)}
         onDragBegin={() => Keyboard.dismiss()}
-        activationDistance={12}
         renderItem={({ item, drag, isActive, getIndex }: RenderItemParams<ExerciseRow>) => {
           const index = getIndex() ?? 0;
           return (

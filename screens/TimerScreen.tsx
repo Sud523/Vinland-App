@@ -19,7 +19,13 @@ import { V } from '../constants/vinlandTheme';
 import type { Day, ExerciseDefinition, Task } from '../types';
 import { localDateKey, resolveTodayDay } from '../utils/date';
 import { loadData } from '../utils/storage';
-import { loadTimerChime, playTimerChime, unloadTimerChime } from '../utils/timerSound';
+import {
+  loadTimerChime,
+  playTimerChime,
+  playTimerEndChime,
+  playTimerStartChime,
+  unloadTimerChime,
+} from '../utils/timerSound';
 import { exerciseSummaryLines, isWorkoutSectionHeader } from '../utils/workouts';
 import {
   createWorkoutTimerState,
@@ -128,6 +134,7 @@ export default function TimerScreen() {
     const id = setInterval(() => {
       setBetweenCountdown((c) => {
         if (c == null || c <= 1) {
+          void playTimerStartChime();
           setTimerState((s) =>
             s && !s.finished ? { ...s, running: true } : s,
           );
@@ -158,7 +165,7 @@ export default function TimerScreen() {
             prev.currentPhaseIndex !== next.currentPhaseIndex);
 
         if (finishedWorkout) {
-          void playTimerChime();
+          void playTimerEndChime();
           return next;
         }
         if (segmentAdvanced) {
@@ -182,6 +189,7 @@ export default function TimerScreen() {
   };
 
   const start = () => {
+    void playTimerStartChime();
     setTimerState((s) => (s && !s.finished ? { ...s, running: true } : s));
   };
 
@@ -234,7 +242,7 @@ export default function TimerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={V.text} />
+          <ActivityIndicator size="large" color={V.runeGlow} />
         </View>
       </SafeAreaView>
     );
