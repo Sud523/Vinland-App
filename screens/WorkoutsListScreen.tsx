@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   savedRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: V.space.sm,
